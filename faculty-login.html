@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — Faculty Login</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    #app { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:40px 20px; }
+    .error-msg { color:var(--accent-rose); font-size:.8rem; margin-top:8px; display:none; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="auth-panel">
+    <a href="index.html" class="btn-ghost-vocalid mb-4 px-0">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg> Back
+    </a>
+    <div class="auth-icon">
+      <svg width="22" height="22" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/></svg>
+    </div>
+    <p class="label-accent mb-2">Faculty Authentication</p>
+    <h2 style="font-size:1.9rem;margin-bottom:6px;">Sign In</h2>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:32px;">Access the faculty control panel</p>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="mb-3">
+        <label class="v-label">Faculty ID</label>
+        <input type="text" id="faculty-id" required class="v-input" placeholder="e.g. FAC-2024-001">
+      </div>
+      <div class="mb-1">
+        <label class="v-label">Password</label>
+        <input type="password" id="faculty-password" required class="v-input" placeholder="Enter your password">
+      </div>
+      <p class="error-msg" id="error-msg">Invalid credentials. Try any ID and password to demo.</p>
+      <div class="mt-4">
+        <button type="submit" class="btn-vocalid w-100 justify-content-center">
+          Continue to Dashboard
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <p style="font-size:.72rem;color:var(--text-muted);text-align:center;margin-top:14px;">Demo: enter any Faculty ID and password</p>
+    </form>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/vocalid.js"></script>
+<script>
+  function handleLogin(e) {
+    e.preventDefault();
+    const id = document.getElementById('faculty-id').value.trim();
+    const pw = document.getElementById('faculty-password').value;
+    if (!id || !pw) { document.getElementById('error-msg').style.display='block'; return; }
+    VocalID.set('faculty_logged_in', true);
+    VocalID.set('faculty_id', id);
+    window.location.href = 'dashboard.html';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <div class="dashboard-wrapper">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="d-flex align-items-center gap-2 mb-4 px-1">
+        <div class="sidebar-logo-mark">V</div>
+        <div>
+          <div style="font-size:.9rem;font-weight:700;">VocalID</div>
+          <div style="font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;">Faculty Portal</div>
+        </div>
+      </div>
+      <div class="section-label">Classes</div>
+      <a href="class.html?id=class1" class="nav-btn">
+        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        CS101 — Algorithms <span class="nav-badge">8</span>
+      </a>
+      <a href="class.html?id=class2" class="nav-btn">
+        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        IT202 — Networks <span class="nav-badge">5</span>
+      </a>
+      <div class="section-label">Analytics</div>
+      <a href="reports.html" class="nav-btn">
+        <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Reports & Analytics
+      </a>
+      <div class="mt-auto pt-3" style="border-top:1px solid var(--border-subtle);">
+        <div class="d-flex align-items-center gap-2 px-2 mb-2">
+          <div class="sidebar-avatar" id="faculty-avatar">P</div>
+          <div>
+            <div style="font-size:.8rem;font-weight:600;" id="faculty-name-display">Professor</div>
+            <div style="font-size:.65rem;color:var(--text-muted);">Faculty Account</div>
+          </div>
+        </div>
+        <a href="index.html" class="nav-btn" style="color:var(--accent-rose);">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          Sign Out
+        </a>
+      </div>
+    </aside>
+    <!-- Main -->
+    <div class="dashboard-main">
+      <div class="topbar">
+        <div>
+          <div style="font-size:.95rem;font-weight:600;">Overview</div>
+          <div style="font-size:.72rem;color:var(--text-muted);">VocalID Faculty Dashboard</div>
+        </div>
+        <div class="status-pill"><div class="status-dot"></div> System Online</div>
+      </div>
+      <div style="padding:32px;">
+        <div class="welcome-hero">
+          <p class="label-accent mb-2" id="time-label">FACULTY DASHBOARD</p>
+          <h2 style="font-size:2rem;margin-bottom:6px;" id="greeting-msg">Good morning, Professor.</h2>
+          <p style="font-size:.83rem;color:var(--text-secondary);">Select a class from the sidebar or review your analytics below.</p>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);">
+                <svg width="17" height="17" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197"/></svg>
+              </div>
+              <div class="stat-value" style="color:var(--accent-cyan);">13</div>
+              <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Total Students</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.2);">
+                <svg width="17" height="17" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div class="stat-value" style="color:var(--accent-emerald);">89%</div>
+              <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Avg Attendance</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="stat-card">
+              <div class="stat-icon" style="background:rgba(240,180,41,.1);border:1px solid rgba(240,180,41,.2);">
+                <svg width="17" height="17" fill="none" stroke="#f0b429" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div class="stat-value" style="color:var(--accent-gold);">2</div>
+              <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Active Classes</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick-nav cards -->
+        <div class="row g-3 mt-2">
+          <div class="col-md-6">
+            <a href="class.html?id=class1" class="glass-card d-block text-decoration-none p-4">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-icon mb-0" style="background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.15);">
+                  <svg width="17" height="17" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:.95rem;font-weight:600;color:var(--text-primary);">CS101 — Algorithms</div>
+                  <div style="font-size:.72rem;color:var(--text-muted);">8 students enrolled</div>
+                </div>
+              </div>
+              <div style="font-size:.78rem;color:var(--accent-cyan);">Manage Attendance →</div>
+            </a>
+          </div>
+          <div class="col-md-6">
+            <a href="class.html?id=class2" class="glass-card d-block text-decoration-none p-4">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-icon mb-0" style="background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.15);">
+                  <svg width="17" height="17" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                </div>
+                <div>
+                  <div style="font-size:.95rem;font-weight:600;color:var(--text-primary);">IT202 — Networks</div>
+                  <div style="font-size:.72rem;color:var(--text-muted);">5 students enrolled</div>
+                </div>
+              </div>
+              <div style="font-size:.78rem;color:var(--accent-emerald);">Manage Attendance →</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/vocalid.js"></script>
+<script>
+  VocalID.requireFacultyAuth();
+  const id = VocalID.get('faculty_id', 'Professor');
+  document.getElementById('faculty-name-display').textContent = id;
+  document.getElementById('faculty-avatar').textContent = id.charAt(0).toUpperCase();
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting-msg').textContent = `${greet}, ${id}.`;
+  document.getElementById('time-label').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).toUpperCase();
+</script>
+</body>
+</html>

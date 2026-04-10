@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — Reports & Analytics</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <div id="app">
+    <div class="dashboard-wrapper">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="d-flex align-items-center gap-2 mb-4 px-1">
+          <div class="sidebar-logo-mark">V</div>
+          <div>
+            <div style="font-size:.9rem;font-weight:700;">VocalID</div>
+            <div style="font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;">Faculty
+              Portal</div>
+          </div>
+        </div>
+        <div class="section-label">Classes</div>
+        <a href="class.html?id=class1" class="nav-btn">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            viewBox="0 0 24 24">
+            <path
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          CS101 — Algorithms <span class="nav-badge">8</span>
+        </a>
+        <a href="class.html?id=class2" class="nav-btn">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            viewBox="0 0 24 24">
+            <path
+              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          IT202 — Networks <span class="nav-badge">5</span>
+        </a>
+        <div class="section-label">Analytics</div>
+        <a href="reports.html" class="nav-btn active">
+          <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            viewBox="0 0 24 24">
+            <path
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Reports & Analytics
+        </a>
+        <div class="mt-auto pt-3" style="border-top:1px solid var(--border-subtle);">
+          <a href="dashboard.html" class="nav-btn">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              viewBox="0 0 24 24">
+              <path
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Dashboard
+          </a>
+          <a href="index.html" class="nav-btn" style="color:var(--accent-rose);">
+            <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              viewBox="0 0 24 24">
+              <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sign Out
+          </a>
+        </div>
+      </aside>
+
+      <!-- Main -->
+      <div class="dashboard-main">
+        <div class="topbar">
+          <div>
+            <div style="font-size:.95rem;font-weight:600;">Reports & Analytics</div>
+            <div style="font-size:.72rem;color:var(--text-muted);">Attendance insights & performance</div>
+          </div>
+          <div class="status-pill">
+            <div class="status-dot"></div> System Online
+          </div>
+        </div>
+
+        <div style="padding:32px;">
+          <div class="d-flex justify-content-between align-items-start mb-4 gap-3 flex-wrap">
+            <div>
+              <p class="label-accent mb-2">Analytics</p>
+              <h2 style="font-size:1.7rem;margin-bottom:6px;">Reports & Insights</h2>
+              <p style="font-size:.82rem;color:var(--text-muted);">Attendance trends, top performers, and class
+                statistics.</p>
+            </div>
+            <button onclick="exportReport()" class="btn-vocalid emerald flex-shrink-0">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                viewBox="0 0 24 24">
+                <path
+                  d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+              Export Report
+            </button>
+          </div>
+
+          <!-- Summary Stats -->
+          <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+              <div class="stat-card text-center">
+                <div class="stat-value" style="color:var(--accent-cyan);" id="stat-c1-present">—</div>
+                <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+                  CS101 Present</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card text-center">
+                <div class="stat-value" style="color:var(--accent-rose);" id="stat-c1-absent">—</div>
+                <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+                  CS101 Absent</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card text-center">
+                <div class="stat-value" style="color:var(--accent-emerald);" id="stat-c2-present">—</div>
+                <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+                  IT202 Present</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="stat-card text-center">
+                <div class="stat-value" style="color:var(--accent-rose);" id="stat-c2-absent">—</div>
+                <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">
+                  IT202 Absent</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <!-- Weekly Overview -->
+            <div class="col-md-4">
+              <div class="report-card">
+                <div style="font-size:.85rem;font-weight:600;margin-bottom:20px;">Weekly Overview</div>
+                <div class="weekly-row"><span style="font-size:.8rem;color:var(--text-secondary);">Monday</span>
+                  <div class="bar-bg">
+                    <div class="bar-fill" style="width:92%"></div>
+                  </div><span style="font-size:.75rem;font-family:var(--font-mono);color:var(--accent-cyan);">92%</span>
+                </div>
+                <div class="weekly-row"><span style="font-size:.8rem;color:var(--text-secondary);">Tuesday</span>
+                  <div class="bar-bg">
+                    <div class="bar-fill" style="width:88%"></div>
+                  </div><span style="font-size:.75rem;font-family:var(--font-mono);color:var(--accent-cyan);">88%</span>
+                </div>
+                <div class="weekly-row"><span style="font-size:.8rem;color:var(--text-secondary);">Wednesday</span>
+                  <div class="bar-bg">
+                    <div class="bar-fill" style="width:91%"></div>
+                  </div><span style="font-size:.75rem;font-family:var(--font-mono);color:var(--accent-cyan);">91%</span>
+                </div>
+                <div class="weekly-row"><span style="font-size:.8rem;color:var(--text-secondary);">Thursday</span>
+                  <div class="bar-bg">
+                    <div class="bar-fill" style="width:89%"></div>
+                  </div><span style="font-size:.75rem;font-family:var(--font-mono);color:var(--accent-cyan);">89%</span>
+                </div>
+                <div class="weekly-row"><span style="font-size:.8rem;color:var(--text-secondary);">Friday</span>
+                  <div class="bar-bg">
+                    <div class="bar-fill" style="width:87%"></div>
+                  </div><span style="font-size:.75rem;font-family:var(--font-mono);color:var(--accent-cyan);">87%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top Performers -->
+            <div class="col-md-4">
+              <div class="report-card">
+                <div style="font-size:.85rem;font-weight:600;margin-bottom:20px;">Top Performers</div>
+                <div class="perf-row">
+                  <div class="rank-badge"
+                    style="background:rgba(240,180,41,.15);color:var(--accent-gold);border:1px solid rgba(240,180,41,.3);">
+                    1</div><span style="font-size:.82rem;color:var(--text-secondary);flex:1;">Abinaya
+                    Velliyangiri</span><span
+                    style="font-size:.78rem;font-family:var(--font-mono);color:var(--accent-emerald);font-weight:700;">100%</span>
+                </div>
+                <div class="perf-row">
+                  <div class="rank-badge"
+                    style="background:rgba(255,255,255,.06);color:var(--text-secondary);border:1px solid var(--border-subtle);">
+                    2</div><span style="font-size:.82rem;color:var(--text-secondary);flex:1;">Arjun
+                    Vijayakumar</span><span
+                    style="font-size:.78rem;font-family:var(--font-mono);color:var(--accent-emerald);font-weight:700;">98%</span>
+                </div>
+                <div class="perf-row">
+                  <div class="rank-badge"
+                    style="background:rgba(205,127,50,.1);color:#cd7f32;border:1px solid rgba(205,127,50,.3);">3</div>
+                  <span style="font-size:.82rem;color:var(--text-secondary);flex:1;">Janasruthi Gopi</span><span
+                    style="font-size:.78rem;font-family:var(--font-mono);color:var(--accent-emerald);font-weight:700;">96%</span>
+                </div>
+                <div class="perf-row">
+                  <div class="rank-badge"
+                    style="background:rgba(255,255,255,.04);color:var(--text-muted);border:1px solid var(--border-subtle);">
+                    4</div><span style="font-size:.82rem;color:var(--text-secondary);flex:1;">Monisha
+                    Saravanan</span><span
+                    style="font-size:.78rem;font-family:var(--font-mono);color:var(--accent-emerald);font-weight:700;">95%</span>
+                </div>
+                <div class="perf-row">
+                  <div class="rank-badge"
+                    style="background:rgba(255,255,255,.04);color:var(--text-muted);border:1px solid var(--border-subtle);">
+                    5</div><span style="font-size:.82rem;color:var(--text-secondary);flex:1;">Nivedha Baskar</span><span
+                    style="font-size:.78rem;font-family:var(--font-mono);color:var(--accent-emerald);font-weight:700;">93%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Class Stats -->
+            <div class="col-md-4">
+              <div class="report-card">
+                <div style="font-size:.85rem;font-weight:600;margin-bottom:20px;">Class Statistics</div>
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between mb-1"><span
+                      style="font-size:.8rem;color:var(--text-secondary);">CS101 — Algorithms</span><span
+                      class="stat-c1-pct"
+                      style="font-size:.76rem;font-family:var(--font-mono);color:var(--accent-cyan);">—</span></div>
+                  <div style="height:4px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;">
+                    <div id="bar-c1"
+                      style="height:100%;width:0;background:linear-gradient(90deg,var(--accent-cyan),var(--accent-emerald));border-radius:4px;transition:width .8s ease;">
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="d-flex justify-content-between mb-1"><span
+                      style="font-size:.8rem;color:var(--text-secondary);">IT202 — Networks</span><span
+                      class="stat-c2-pct"
+                      style="font-size:.76rem;font-family:var(--font-mono);color:var(--accent-cyan);">—</span></div>
+                  <div style="height:4px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;">
+                    <div id="bar-c2"
+                      style="height:100%;width:0;background:linear-gradient(90deg,var(--accent-cyan),var(--accent-emerald));border-radius:4px;transition:width .8s ease;">
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border-subtle);">
+                  <div class="d-flex justify-content-between">
+                    <span style="font-size:.78rem;color:var(--text-muted);">Overall Average</span>
+                    <span id="overall-avg"
+                      style="font-size:.85rem;font-family:var(--font-mono);color:var(--accent-emerald);font-weight:700;">—</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed attendance table -->
+          <div class="v-table-wrap mt-4">
+            <div class="v-table-head d-flex justify-content-between align-items-center">
+              <span style="font-size:.88rem;font-weight:600;">Current Session — All Students</span>
+              <div class="d-flex gap-2 align-items-center">
+                <select id="class-filter" class="v-input" style="width:auto;padding:7px 12px;font-size:.78rem;"
+                  onchange="filterTable()">
+                  <option value="all">All Classes</option>
+                  <option value="class1">CS101</option>
+                  <option value="class2">IT202</option>
+                </select>
+              </div>
+            </div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Class</th>
+                    <th>Roll No</th>
+                    <th>Student Name</th>
+                    <th>Status</th>
+                    <th>Confidence</th>
+                  </tr>
+                </thead>
+                <tbody id="all-students-list"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/vocalid.js"></script>
+  <script>
+    VocalID.requireFacultyAuth();
+
+    /* ── Inject keyframes ───────────────────────────── */
+    const _ks = document.createElement('style');
+    _ks.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(_ks);
+
+    /* ── Live data ──────────────────────────────────── */
+    let _c1Students = [];
+    let _c2Students = [];
+    let _apiRecords = [];
+
+    /* ── Build roster rows from DB students + attendance */
+    function buildRoster(students, classLabel, presentSet, records) {
+      return students.map(s => {
+        const rec = records.find(r => r.studentId === s.studentId);
+        return {
+          roll: s.studentId,
+          name: s.name,
+          class: classLabel,
+          status: presentSet.has(s.studentId) ? 'present' : 'pending',
+          confidence: rec?.confidence || 0
+        };
+      });
+    }
+
+    function calcStats(rows) {
+      const total = rows.length;
+      const present = rows.filter(r => r.status === 'present').length;
+      const absent = total - present;
+      const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+      return { total, present, absent, pct };
+    }
+
+    /* ── Render table ───────────────────────────────── */
+    function renderAllStudents(filter = 'all') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const presentSet = new Set(_apiRecords.filter(r => r.date === todayStr).map(r => r.studentId));
+
+      const r1 = buildRoster(_c1Students, 'CS101', presentSet, _apiRecords);
+      const r2 = buildRoster(_c2Students, 'IT202', presentSet, _apiRecords);
+      const all = [...r1, ...r2];
+
+      const filtered = filter === 'all' ? all
+        : all.filter(s => filter === 'class1' ? s.class === 'CS101' : s.class === 'IT202');
+
+      const tbody = document.getElementById('all-students-list');
+      tbody.innerHTML = '';
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:28px;">
+          No students found. Register students to see them here.
+        </td></tr>`;
+        return;
+      }
+
+      filtered.forEach(s => {
+        const badges = { present: ['badge-present', 'Present'], absent: ['badge-absent', 'Absent'], review: ['badge-review', 'Review'], pending: ['badge-pending', 'Pending'] };
+        const [cls, lbl] = badges[s.status] || ['badge-pending', 'Pending'];
+        const conf = s.confidence > 0
+          ? `<div class="conf-wrap"><div class="conf-bg"><div class="conf-fill" style="width:${s.confidence}%"></div></div><span style="font-size:.76rem;font-family:var(--font-mono);color:var(--text-secondary);">${s.confidence}%</span></div>`
+          : '—';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-size:.75rem;color:var(--accent-cyan);font-family:var(--font-mono);">${s.class}</td>
+          <td class="td-roll">${s.roll}</td>
+          <td class="td-name">${s.name}</td>
+          <td><span class="badge-v ${cls}">${lbl}</span></td>
+          <td>${conf}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterTable() {
+      renderAllStudents(document.getElementById('class-filter').value);
+    }
+
+    /* ── Stat cards ─────────────────────────────────── */
+    function updateStats() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const presentSet = new Set(_apiRecords.filter(r => r.date === todayStr).map(r => r.studentId));
+
+      const s1 = calcStats(buildRoster(_c1Students, 'CS101', presentSet, _apiRecords));
+      const s2 = calcStats(buildRoster(_c2Students, 'IT202', presentSet, _apiRecords));
+
+      document.getElementById('stat-c1-present').textContent = s1.present;
+      document.getElementById('stat-c1-absent').textContent = s1.absent;
+      document.getElementById('stat-c2-present').textContent = s2.present;
+      document.getElementById('stat-c2-absent').textContent = s2.absent;
+
+      document.querySelectorAll('.stat-c1-pct').forEach(el => el.textContent = s1.pct + '%');
+      document.querySelectorAll('.stat-c2-pct').forEach(el => el.textContent = s2.pct + '%');
+      setTimeout(() => {
+        document.getElementById('bar-c1').style.width = s1.pct + '%';
+        document.getElementById('bar-c2').style.width = s2.pct + '%';
+      }, 200);
+
+      const totalStudents = _c1Students.length + _c2Students.length;
+      const overall = totalStudents > 0
+        ? Math.round((s1.present + s2.present) / totalStudents * 100)
+        : 0;
+      document.getElementById('overall-avg').textContent = overall + '%';
+    }
+
+    /* ── Main loader ────────────────────────────────── */
+    async function loadFromAPI() {
+      const tbody = document.getElementById('all-students-list');
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">
+        <div style="display:inline-block;width:16px;height:16px;border:2px solid rgba(0,212,255,.3);border-top-color:#00d4ff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;"></div>
+        Loading from database…
+      </td></tr>`;
+
+      const [c1, c2, report] = await Promise.all([
+        fetchStudents({ classId: 'class1' }),
+        fetchStudents({ classId: 'class2' }),
+        fetchAttendanceReport({})
+      ]);
+
+      _c1Students = c1;
+      _c2Students = c2;
+      _apiRecords = report?.records || [];
+
+      updateStats();
+      renderAllStudents(document.getElementById('class-filter').value);
+    }
+
+    /* ── CSV Export ─────────────────────────────────── */
+    function exportReport() {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const presentSet = new Set(_apiRecords.filter(r => r.date === todayStr).map(r => r.studentId));
+
+      let csv = 'Class,Roll No,Name,Status,Confidence,Date,Time\n';
+      const addRows = (students, label) => {
+        students.forEach(s => {
+          const rec = _apiRecords.find(r => r.studentId === s.studentId && r.date === todayStr);
+          const status = presentSet.has(s.studentId) ? 'present' : 'absent';
+          csv += `${label},${s.studentId},${s.name},${status},${rec?.confidence ?? 0}%,${rec?.date ?? ''},${rec?.time ?? ''}\n`;
+        });
+      };
+      addRows(_c1Students, 'CS101');
+      addRows(_c2Students, 'IT202');
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `VocalID_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+    }
+
+    loadFromAPI();
+  </script>
+
+</body>
+
+</html>
+const total = students.length;
+const present = students.filter(s => s.status === 'present').length;
+const absent = students.filter(s => s.status !== 'present').length;
+const pct = total > 0 ? Math.round((present / total) * 100) : 0;
+return { total, present, absent, pct };
+}
+
+/* ── Render table from both local + API data ─────── */
+function renderAllStudents(filter = 'all') {
+const c1 = VocalID.getStudents('class1');
+const c2 = VocalID.getStudents('class2');
+
+// Overlay API records onto local student list (mark as 'present' if found in API records)
+const todayStr = new Date().toISOString().split('T')[0];
+const todayPresent = new Set(
+_apiRecords
+.filter(r => r.date === todayStr)
+.map(r => r.studentId)
+);
+
+const merged = [
+...c1.map(s => {
+const apiStatus = todayPresent.has(s.roll) ? 'present' : s.status;
+const apiConf = _apiRecords.find(r => r.studentId === s.roll && r.date === todayStr)?.confidence || s.confidence;
+return { ...s, class: 'CS101', status: apiStatus, confidence: apiConf };
+}),
+...c2.map(s => {
+const apiStatus = todayPresent.has(s.roll) ? 'present' : s.status;
+const apiConf = _apiRecords.find(r => r.studentId === s.roll && r.date === todayStr)?.confidence || s.confidence;
+return { ...s, class: 'IT202', status: apiStatus, confidence: apiConf };
+})
+];
+
+// Also add any API records for students NOT in the local default list
+_apiRecords.forEach(r => {
+const alreadyIn = merged.some(m => m.roll === r.studentId);
+if (!alreadyIn) {
+merged.push({
+roll: r.studentId, name: r.studentName,
+status: 'present', confidence: r.confidence || 0,
+class: r.subject || '—'
+});
+}
+});
+
+const filtered = filter === 'all' ? merged
+: merged.filter(s => filter === 'class1' ? s.class === 'CS101' : s.class === 'IT202');
+
+const tbody = document.getElementById('all-students-list');
+tbody.innerHTML = '';
+
+if (filtered.length === 0) {
+tbody.innerHTML = `<tr>
+  <td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No records found.</td>
+</tr>`;
+return;
+}
+
+filtered.forEach(s => {
+const badges = {
+present: ['badge-present', 'Present'],
+absent: ['badge-absent', 'Absent'],
+review: ['badge-review', 'Review'],
+pending: ['badge-pending', 'Pending']
+};
+const [cls, lbl] = badges[s.status] || ['badge-pending', 'Pending'];
+const conf = s.confidence > 0
+? `<div class="conf-wrap">
+  <div class="conf-bg">
+    <div class="conf-fill" style="width:${s.confidence}%"></div>
+  </div><span style="font-size:.76rem;font-family:var(--font-mono);color:var(--text-secondary);">${s.confidence}%</span>
+</div>`
+: '—';
+const tr = document.createElement('tr');
+tr.innerHTML = `
+<td style="font-size:.75rem;color:var(--accent-cyan);font-family:var(--font-mono);">${s.class}</td>
+<td class="td-roll">${s.roll}</td>
+<td class="td-name">${s.name}</td>
+<td><span class="badge-v ${cls}">${lbl}</span></td>
+<td>${conf}</td>`;
+tbody.appendChild(tr);
+});
+}
+
+function filterTable() {
+renderAllStudents(document.getElementById('class-filter').value);
+}
+
+/* ── Update stat cards ───────────────────────────── */
+function updateStats() {
+const c1 = VocalID.getStudents('class1');
+const c2 = VocalID.getStudents('class2');
+const todayStr = new Date().toISOString().split('T')[0];
+const todayPresent = new Set(
+_apiRecords.filter(r => r.date === todayStr).map(r => r.studentId)
+);
+
+// Overlay API data
+const merge = (students) => students.map(s =>
+todayPresent.has(s.roll) ? { ...s, status: 'present' } : s
+);
+
+const s1 = calcStats(merge(c1));
+const s2 = calcStats(merge(c2));
+
+document.getElementById('stat-c1-present').textContent = s1.present;
+document.getElementById('stat-c1-absent').textContent = s1.absent;
+document.getElementById('stat-c2-present').textContent = s2.present;
+document.getElementById('stat-c2-absent').textContent = s2.absent;
+
+document.querySelectorAll('.stat-c1-pct').forEach(el => el.textContent = s1.pct + '%');
+document.querySelectorAll('.stat-c2-pct').forEach(el => el.textContent = s2.pct + '%');
+setTimeout(() => {
+document.getElementById('bar-c1').style.width = s1.pct + '%';
+document.getElementById('bar-c2').style.width = s2.pct + '%';
+}, 200);
+
+const overall = Math.round((s1.pct + s2.pct) / 2);
+document.getElementById('overall-avg').textContent = overall + '%';
+}
+
+/* ── Fetch from API then render ──────────────────── */
+async function loadFromAPI(filters = {}) {
+const tbody = document.getElementById('all-students-list');
+tbody.innerHTML = `<tr>
+  <td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">
+    <div
+      style="display:inline-block;width:16px;height:16px;border:2px solid rgba(0,212,255,.3);border-top-color:#00d4ff;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle;">
+    </div>
+    Loading attendance data…
+  </td>
+</tr>`;
+
+const result = await fetchAttendanceReport(filters);
+if (result) {
+_apiRecords = result.records || [];
+} else {
+_apiRecords = []; // backend unreachable — fall back to local data silently
+}
+
+updateStats();
+renderAllStudents(document.getElementById('class-filter').value);
+}
+
+/* ── CSV Export (merges API + local data) ────────── */
+function exportReport() {
+const c1 = VocalID.getStudents('class1');
+const c2 = VocalID.getStudents('class2');
+const todayStr = new Date().toISOString().split('T')[0];
+const todayPresent = new Set(
+_apiRecords.filter(r => r.date === todayStr).map(r => r.studentId)
+);
+
+let csv = 'Class,Roll No,Name,Status,Confidence,Date,Time\n';
+
+// Local students with API overlay
+c1.forEach(s => {
+const status = todayPresent.has(s.roll) ? 'present' : s.status;
+const rec = _apiRecords.find(r => r.studentId === s.roll && r.date === todayStr);
+csv += `CS101,${s.roll},${s.name},${status},${rec?.confidence ?? s.confidence}%,${rec?.date ?? ''},${rec?.time ??
+''}\n`;
+});
+c2.forEach(s => {
+const status = todayPresent.has(s.roll) ? 'present' : s.status;
+const rec = _apiRecords.find(r => r.studentId === s.roll && r.date === todayStr);
+csv += `IT202,${s.roll},${s.name},${status},${rec?.confidence ?? s.confidence}%,${rec?.date ?? ''},${rec?.time ??
+''}\n`;
+});
+
+// Extra API records not in local list
+_apiRecords.forEach(r => {
+const inLocal = [...c1, ...c2].some(s => s.roll === r.studentId);
+if (!inLocal) csv += `,${r.studentId},${r.studentName},present,${r.confidence ?? 0}%,${r.date},${r.time}\n`;
+});
+
+const blob = new Blob([csv], { type: 'text/csv' });
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = `VocalID_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+a.click();
+}
+
+/* ── Inject spinner keyframe ──────────────────────── */
+const _ss = document.createElement('style');
+_ss.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+document.head.appendChild(_ss);
+
+/* ── Bootstrap ────────────────────────────────────── */
+loadFromAPI();
+</script>
+</body>
+
+</html>

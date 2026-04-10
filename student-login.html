@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — Student Registration</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    #app {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="auth-panel">
+      <a href="index.html" class="btn-ghost-vocalid mb-4 px-0">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+          viewBox="0 0 24 24">
+          <path d="M19 12H5M12 5l-7 7 7 7" />
+        </svg> Back
+      </a>
+      <div class="auth-icon" style="background:rgba(0,229,160,.1);border-color:rgba(0,229,160,.2);">
+        <svg width="22" height="22" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round"
+          viewBox="0 0 24 24">
+          <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      </div>
+      <p class="label-accent mb-2" style="color:var(--accent-emerald);">Student Registration</p>
+      <h2 style="font-size:1.9rem;margin-bottom:6px;">Your Details</h2>
+      <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:32px;">Register to begin voice enrollment</p>
+
+      <!-- Tab switcher: Register / Login -->
+      <div class="d-flex gap-2 mb-4" style="border-bottom:1px solid var(--border-subtle);padding-bottom:12px;">
+        <button id="tab-register" onclick="switchTab('register')"
+          style="background:none;border:none;font-size:.82rem;font-weight:600;padding:4px 0;cursor:pointer;color:var(--accent-emerald);border-bottom:2px solid var(--accent-emerald);padding-bottom:8px;margin-bottom:-13px;">
+          Register
+        </button>
+        <button id="tab-login" onclick="switchTab('login')"
+          style="background:none;border:none;font-size:.82rem;font-weight:600;padding:4px 12px;cursor:pointer;color:var(--text-muted);">
+          Already registered? Sign In
+        </button>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <form id="form-register" onsubmit="handleRegister(event)">
+        <div class="mb-3"><label class="v-label">Full Name</label><input type="text" id="reg-name" required
+            class="v-input" placeholder="Enter your full name"></div>
+        <div class="mb-3"><label class="v-label">Email Address</label><input type="email" id="reg-email" required
+            class="v-input" placeholder="you@college.edu"></div>
+        <div class="mb-3"><label class="v-label">Roll Number</label><input type="text" id="reg-roll" required
+            class="v-input" placeholder="e.g. CS001"></div>
+        <div class="mb-3">
+          <label class="v-label">Class</label>
+          <select id="reg-class" required class="v-input">
+            <option value="">Select your class</option>
+            <option value="class1">CS101 — Algorithms</option>
+            <option value="class2">IT202 — Networks</option>
+          </select>
+        </div>
+        <div class="mb-4"><label class="v-label">Password</label><input type="password" id="reg-password" required
+            minlength="6" class="v-input" placeholder="Min. 6 characters"></div>
+        <button type="submit" id="btn-register" class="btn-vocalid emerald w-100 justify-content-center">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            viewBox="0 0 24 24">
+            <path
+              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+          Begin Voice Enrollment
+        </button>
+      </form>
+
+      <!-- LOGIN FORM -->
+      <form id="form-login" onsubmit="handleLogin(event)" style="display:none;">
+        <div class="mb-3"><label class="v-label">Roll Number / Student ID</label><input type="text" id="login-roll"
+            required class="v-input" placeholder="e.g. CS001"></div>
+        <div class="mb-4"><label class="v-label">Password</label><input type="password" id="login-password" required
+            class="v-input" placeholder="Your password"></div>
+        <button type="submit" id="btn-login" class="btn-vocalid emerald w-100 justify-content-center">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            viewBox="0 0 24 24">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/vocalid.js"></script>
+  <script>
+    /* ── Tab switch ─────────────────────────────────── */
+    function switchTab(tab) {
+      const isReg = tab === 'register';
+      document.getElementById('form-register').style.display = isReg ? '' : 'none';
+      document.getElementById('form-login').style.display = isReg ? 'none' : '';
+      document.getElementById('tab-register').style.color = isReg ? 'var(--accent-emerald)' : 'var(--text-muted)';
+      document.getElementById('tab-register').style.borderBottom = isReg ? '2px solid var(--accent-emerald)' : 'none';
+      document.getElementById('tab-login').style.color = isReg ? 'var(--text-muted)' : 'var(--accent-cyan)';
+    }
+
+    /* ── Registration ───────────────────────────────── */
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-register');
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const roll = document.getElementById('reg-roll').value.trim().toUpperCase();
+      const classId = document.getElementById('reg-class').value;
+      const password = document.getElementById('reg-password').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Registering…';
+
+      const ok = await registerStudent(name, roll, email, password, classId);
+
+      if (ok) {
+        setTimeout(() => { window.location.href = 'voice.html'; }, 900);
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg> Begin Voice Enrollment';
+      }
+    }
+
+    /* ── Login ──────────────────────────────────────── */
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-login');
+      const roll = document.getElementById('login-roll').value.trim().toUpperCase();
+      const password = document.getElementById('login-password').value;
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Signing in…';
+
+      const ok = await loginStudent(roll, password);
+
+      if (!ok) {
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Sign In';
+      }
+    }
+  </script>
+</body>
+
+</html>

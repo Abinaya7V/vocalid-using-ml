@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — Voice Enrollment</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    #app {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .auth-panel {
+      max-width: 660px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="auth-panel">
+      <p class="label-accent mb-1">Voice Biometrics Enrollment</p>
+      <h2 style="font-size:1.8rem;margin-bottom:4px;">Record Voice Samples</h2>
+      <p id="student-greeting" style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:4px;"></p>
+      <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:28px;">Speak clearly in a quiet environment. We
+        need 3 samples to build your voice profile.</p>
+
+      <div class="d-flex justify-content-between align-items-center">
+        <span
+          style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Progress</span>
+        <span id="sample-count" style="font-size:.7rem;font-family:var(--font-mono);color:var(--accent-cyan);">0 / 3
+          samples</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="sample-progress"></div>
+      </div>
+      <p style="font-size:.67rem;color:var(--text-muted);margin-bottom:24px;">Complete 3 samples. The last sample will
+        be uploaded to your profile.</p>
+
+      <div class="row g-2 mb-4">
+        <div class="col-6">
+          <div class="prompt-card">
+            <div class="label-accent mb-1">Sample 01</div>
+            <div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;" id="prompt1">"My name is [Your
+              Name]"</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="prompt-card">
+            <div class="label-accent mb-1">Sample 02</div>
+            <div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;" id="prompt2">"Roll number [Your
+              Roll No]"</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="prompt-card">
+            <div class="label-accent mb-1">Sample 03</div>
+            <div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;">"I am present today"</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="prompt-card">
+            <div class="label-accent mb-1">Info</div>
+            <div style="font-size:.82rem;color:var(--text-muted);">Each recording is ~3 seconds</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="recording-waveform" class="waveform mb-2" style="display:none;">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+      <div id="recording-status" class="rec-pill" style="display:none;">
+        <div class="rec-dot"></div> Recording in progress — speak now
+      </div>
+
+      <div class="text-center mb-3">
+        <button id="record-btn" onclick="recordVoiceSample()" class="btn-vocalid justify-content-center">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            viewBox="0 0 24 24">
+            <path
+              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          </svg>
+          Start Recording
+        </button>
+      </div>
+
+      <!-- Mark Attendance button (shown after voice upload succeeds) -->
+      <div id="mark-attendance-section" style="display:none;" class="text-center mb-3">
+        <button onclick="handleMarkAttendance()" class="btn-vocalid justify-content-center"
+          style="background:linear-gradient(135deg,#00e5a0,#00d4ff);">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            viewBox="0 0 24 24">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Mark My Attendance
+        </button>
+      </div>
+
+      <div id="samples-list"></div>
+
+      <div id="complete-registration" style="display:none;">
+        <div class="success-box">
+          <svg width="34" height="34" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round"
+            viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div style="font-size:.95rem;font-weight:600;color:var(--accent-emerald);margin-bottom:4px;">Voice Profile
+            Created</div>
+          <div style="font-size:.78rem;color:var(--text-muted);">Your biometric identity is registered and ready for
+            attendance tracking.</div>
+        </div>
+        <div class="text-center">
+          <a href="index.html" class="btn-vocalid emerald justify-content-center">Complete Enrollment</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/vocalid.js"></script>
+  <script>
+    VocalID.requireStudentAuth();
+
+    const TOTAL_SAMPLES = 3;
+    let voiceSamplesRecorded = 0;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let lastAudioBlob = null;   // the most recent recording, sent to the server
+
+    /* ── Greet the student ──────────────────────────── */
+    window.addEventListener('DOMContentLoaded', () => {
+      // Prefer JWT-stored student, fall back to sessionStorage
+      const student = Auth.getStudent() || VocalID.get('student_info');
+      if (student) {
+        const name = student.name || '';
+        const roll = student.studentId || student.roll || '';
+        document.getElementById('student-greeting').textContent = `Welcome, ${name} (${roll})`;
+        document.getElementById('prompt1').textContent = `"My name is ${name}"`;
+        document.getElementById('prompt2').textContent = `"Roll number ${roll}"`;
+      }
+    });
+
+    /* ── Record & upload logic ──────────────────────── */
+    async function recordVoiceSample() {
+      if (voiceSamplesRecorded >= TOTAL_SAMPLES) return;
+
+      const btn = document.getElementById('record-btn');
+      const wf = document.getElementById('recording-waveform');
+      const st = document.getElementById('recording-status');
+
+      // Request mic access
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        showToast('Microphone access denied. Please allow microphone and try again.', 'error');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<div class="rec-dot" style="width:7px;height:7px;border-radius:50%;background:#ff4d6d;animation:pulse 1s infinite;display:inline-block;"></div> Recording…';
+      wf.style.display = 'flex';
+      st.style.display = 'flex';
+
+      audioChunks = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+      mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+      mediaRecorder.start();
+
+      // Record for 3 seconds then stop
+      setTimeout(() => { mediaRecorder.stop(); stream.getTracks().forEach(t => t.stop()); }, 3000);
+
+      mediaRecorder.onstop = async () => {
+        voiceSamplesRecorded++;
+        lastAudioBlob = new Blob(audioChunks, { type: mimeType });
+
+        // Update progress UI
+        document.getElementById('sample-progress').style.width = (voiceSamplesRecorded / TOTAL_SAMPLES * 100) + '%';
+        document.getElementById('sample-count').textContent = `${voiceSamplesRecorded} / ${TOTAL_SAMPLES} samples`;
+
+        // Add sample row
+        const li = document.getElementById('samples-list');
+        const item = document.createElement('div');
+        item.className = 'sample-item';
+        item.innerHTML = `<div class="d-flex align-items-center gap-2">
+        <svg width="13" height="13" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        <span style="font-size:.72rem;font-family:var(--font-mono);color:var(--accent-emerald);">S-0${voiceSamplesRecorded}</span>
+        <span style="font-size:.82rem;color:var(--text-secondary);">Sample ${voiceSamplesRecorded} captured</span>
+      </div><span style="font-size:.7rem;font-family:var(--font-mono);color:var(--text-muted);">3.0s</span>`;
+        li.appendChild(item);
+
+        wf.style.display = 'none';
+        st.style.display = 'none';
+
+        if (voiceSamplesRecorded >= TOTAL_SAMPLES) {
+          // All samples collected — upload the last blob to the backend
+          btn.innerHTML = '<div class="spinner"></div> Uploading to server…';
+
+          const ext = mimeType === 'audio/webm' ? 'webm' : 'ogg';
+          const uploaded = await uploadVoiceSample(lastAudioBlob, `voice.${ext}`);
+
+          if (uploaded) {
+            btn.style.display = 'none';
+            document.getElementById('complete-registration').style.display = 'block';
+            document.getElementById('mark-attendance-section').style.display = 'block';
+          } else {
+            // Allow retry
+            btn.disabled = false;
+            btn.innerHTML = 'Retry Upload';
+            voiceSamplesRecorded = TOTAL_SAMPLES - 1;
+            document.getElementById('sample-progress').style.width = ((TOTAL_SAMPLES - 1) / TOTAL_SAMPLES * 100) + '%';
+            document.getElementById('sample-count').textContent = `${TOTAL_SAMPLES - 1} / ${TOTAL_SAMPLES} samples`;
+          }
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg> Record Next Sample`;
+        }
+      };
+    }
+
+    /* ── Mark attendance: record fresh voice clip then verify ─ */
+    let isMarkingAttendance = false;
+
+    async function handleMarkAttendance() {
+      if (isMarkingAttendance) return;
+      const btn = document.querySelector('#mark-attendance-section button');
+
+      // Step 1: record a short clip for identity verification
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        showToast('Microphone access denied. Cannot verify voice identity.', 'error');
+        return;
+      }
+
+      isMarkingAttendance = true;
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div> Recording for verification…';
+
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks = [];
+
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.start();
+
+      // Record for 3 seconds
+      await new Promise(resolve => setTimeout(() => {
+        recorder.stop();
+        stream.getTracks().forEach(t => t.stop());
+        resolve();
+      }, 3000));
+
+      // Wait for onstop to fire
+      await new Promise(resolve => { recorder.onstop = resolve; });
+
+      const audioBlob = new Blob(chunks, { type: mimeType });
+      const ext = mimeType.includes('webm') ? 'webm' : 'ogg';
+
+      btn.innerHTML = '<div class="spinner"></div> Verifying voice…';
+
+      const ok = await markAttendance({
+        subject: 'General',
+        audioBlob,
+        audioBlobName: `attendance.${ext}`
+      });
+
+      isMarkingAttendance = false;
+      btn.disabled = false;
+
+      if (ok) {
+        btn.innerHTML = '✅ Attendance Marked';
+        btn.style.opacity = '0.6';
+        btn.disabled = true;
+      } else {
+        btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Retry Attendance`;
+      }
+    }
+  </script>
+</body>
+
+</html>
