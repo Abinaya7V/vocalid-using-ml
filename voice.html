@@ -47,105 +47,114 @@
         <div class="d-flex align-items-center gap-2">
           <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
             <path d="M20 8v24M14 13v14M8 17v6M26 13v14M32 17v6" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" />
+      <!-- Navigation Bar -->
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom:1px solid var(--border-subtle);">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="24" height="24" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
+            <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+            <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
           </svg>
           <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;">VocalID</span>
         </div>
         <div class="d-flex gap-2 align-items-center">
-          <a href="voice.html" class="btn btn-sm btn-info text-dark font-weight-bold" style="font-size:0.75rem;">🎙️ Voice</a>
-          <a href="face.html" class="btn btn-sm btn-outline-secondary text-white" style="font-size:0.75rem;">📷 Face</a>
+          <button onclick="switchTab('multimodal')" id="tab-btn-multi" class="btn btn-sm btn-info text-dark font-weight-bold" style="font-size:0.75rem;">✓ Mark Attendance</button>
+          <button onclick="switchTab('enroll')" id="tab-btn-enroll" class="btn btn-sm btn-outline-secondary text-white" style="font-size:0.75rem;">🎙️ Voice Enroll</button>
+          <a href="face.html" class="btn btn-sm btn-outline-secondary text-white" style="font-size:0.75rem;">📷 Face Enroll</a>
           <a href="index.html" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem;">Sign Out</a>
         </div>
       </div>
 
-      <p class="label-accent mb-1">Voice Biometrics Enrollment</p>
-      <h2 style="font-size:1.8rem;margin-bottom:4px;">Record Voice Samples</h2>
-      <p id="student-greeting" style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:4px;"></p>
-      <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:28px;">Speak clearly in a quiet environment. We
-        need 3 samples to build your voice profile.</p>
+      <!-- Tab 1: Unified Multimodal Attendance -->
+      <div id="tab-multimodal">
+        <p class="label-accent mb-1">Student Attendance Portal</p>
+        <h2 style="font-size:1.8rem;margin-bottom:4px;">Unified Multimodal Verification</h2>
+        <p id="student-greeting" style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:16px;"></p>
 
-      <div class="d-flex justify-content-between align-items-center">
-        <span
-          style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Progress</span>
-        <span id="sample-count" style="font-size:.7rem;font-family:var(--font-mono);color:var(--accent-cyan);">0 / 3
-          samples</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="sample-progress"></div>
-      </div>
-      <p style="font-size:.67rem;color:var(--text-muted);margin-bottom:24px;">Complete 3 samples. The last sample will
-        be uploaded to your profile.</p>
-
-      <div class="row g-2 mb-4">
-        <div class="col-6">
-          <div class="prompt-card">
-            <div class="label-accent mb-1">Sample 01</div>
-            <div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;" id="prompt1">"My name is [Your
-              Name]"</div>
+        <!-- Live Camera Viewfinder -->
+        <div style="position:relative;width:100%;height:240px;background:#000;border-radius:12px;overflow:hidden;border:1px solid var(--border-subtle);margin-bottom:16px;">
+          <video id="student-webcam" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+          <div style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;">
+            <div style="width:150px;height:180px;border:2px dashed rgba(0,212,255,0.6);border-radius:50%;box-shadow:0 0 15px rgba(0,212,255,0.2);"></div>
           </div>
         </div>
-        <div class="col-6">
-          <div class="prompt-card">
-            <div class="label-accent mb-1">Sample 02</div>
-            <div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;" id="prompt2">"Roll number [Your
-              Roll No]"</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="prompt-card">
-            <div class="label-accent mb-1">Sample 03</div>
-            <div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;">"I am present today"</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="prompt-card">
-            <div class="label-accent mb-1">Info</div>
-            <div style="font-size:.82rem;color:var(--text-muted);">Each recording is ~3 seconds</div>
-          </div>
-        </div>
-      </div>
+        <canvas id="student-canvas" style="display:none;"></canvas>
 
-      <div id="recording-waveform" class="waveform mb-2" style="display:none;">
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-      </div>
-      <div id="recording-status" class="rec-pill" style="display:none;">
-        <div class="rec-dot"></div> Recording in progress — speak now
-      </div>
+        <div class="prompt-card mb-3 text-center">
+          <div class="label-accent mb-1">Read Prompt Phrase Aloud into Camera</div>
+          <div style="font-size:.92rem;color:var(--accent-cyan);font-weight:600;" id="verification-prompt">"My voice and face verify my attendance"</div>
+        </div>
 
-      <div class="text-center mb-3">
-        <button id="record-btn" onclick="recordVoiceSample()" class="btn-vocalid justify-content-center">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-            viewBox="0 0 24 24">
-            <path
-              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-          </svg>
-          Start Recording
+        <div id="multi-waveform" class="waveform mb-3" style="display:none;">
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+
+        <div id="multi-status" class="modal-status mb-3 text-center" style="font-size:0.85rem;display:none;"></div>
+
+        <button id="btn-submit-multimodal" onclick="performStudentMultimodalAttendance()" class="btn-vocalid w-100 justify-content-center" style="padding:12px;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Record & Submit Multimodal Attendance
         </button>
-        <!-- Enrollment Complete Card -->
-        <div id="complete-registration" style="display:none;">
-          <div class="success-box mb-3">
-            <svg width="34" height="34" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round"
-              viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div style="font-size:.95rem;font-weight:600;color:var(--accent-emerald);margin-bottom:4px;">Voice Profile Created</div>
-            <div style="font-size:.78rem;color:var(--text-muted);">Your voice biometrics are registered securely. Your attendance will be verified live during class by your faculty.</div>
-          </div>
-          <div class="text-center">
-            <a href="face.html" class="btn-vocalid emerald justify-content-center">Next: Enroll Face Biometrics 📷</a>
+
+        <!-- Multimodal Fusion Score Card Display -->
+        <div id="fusion-result-card" style="display:none;margin-top:20px;">
+          <div id="fusion-status-box" style="border-radius:12px;padding:16px;text-align:center;">
+            <div id="fusion-status-title" style="font-size:1.1rem;font-weight:700;margin-bottom:6px;"></div>
+            <div id="fusion-status-reason" style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:14px;"></div>
+            
+            <div class="row g-2 text-center" style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;">
+              <div class="col-3">
+                <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Voice</div>
+                <div id="card-voice-score" style="font-size:0.95rem;font-weight:700;color:var(--accent-cyan);">-</div>
+              </div>
+              <div class="col-3">
+                <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Face</div>
+                <div id="card-face-score" style="font-size:0.95rem;font-weight:700;color:var(--accent-gold);">-</div>
+              </div>
+              <div class="col-3">
+                <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">LipSync</div>
+                <div id="card-lipsync-score" style="font-size:0.95rem;font-weight:700;color:var(--accent-pink);">-</div>
+              </div>
+              <div class="col-3">
+                <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Final Score</div>
+                <div id="card-final-score" style="font-size:0.95rem;font-weight:700;color:var(--accent-emerald);">-</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div id="samples-list"></div>
+      <!-- Tab 2: Voice Enrollment -->
+      <div id="tab-enroll" style="display:none;">
+        <p class="label-accent mb-1">Voice Biometrics Enrollment</p>
+        <h2 style="font-size:1.8rem;margin-bottom:4px;">Record Voice Samples</h2>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:28px;">Speak clearly in a quiet environment. We need 3 samples to build your voice profile.</p>
+
+        <div class="d-flex justify-content-between align-items-center">
+          <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Progress</span>
+          <span id="sample-count" style="font-size:.7rem;font-family:var(--font-mono);color:var(--accent-cyan);">0 / 3 samples</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="sample-progress"></div></div>
+
+        <div class="row g-2 mb-4">
+          <div class="col-6"><div class="prompt-card"><div class="label-accent mb-1">Sample 01</div><div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;" id="prompt1">"My name is..."</div></div></div>
+          <div class="col-6"><div class="prompt-card"><div class="label-accent mb-1">Sample 02</div><div style="font-size:.86rem;color:var(--accent-cyan);font-style:italic;" id="prompt2">"Roll number..."</div></div></div>
+        </div>
+
+        <div id="recording-waveform" class="waveform mb-2" style="display:none;">
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+        <div id="recording-status" class="rec-pill" style="display:none;">
+          <div class="rec-dot"></div> Recording in progress — speak now
+        </div>
+
+        <div class="text-center mb-3">
+          <button id="record-btn" onclick="recordVoiceSample()" class="btn-vocalid justify-content-center">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+            Start Voice Recording
+          </button>
+        </div>
+        <div id="samples-list"></div>
+      </div>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -153,165 +162,196 @@
   <script>
     VocalID.requireStudentAuth();
 
+    let studentCameraStream = null;
     const TOTAL_SAMPLES = 3;
     let voiceSamplesRecorded = 0;
     let mediaRecorder = null;
     let audioChunks = [];
-    let lastAudioBlob = null;   // the most recent recording, sent to the server
+    let lastAudioBlob = null;
 
-    /* ── Greet the student ──────────────────────────── */
+    function switchTab(tabName) {
+      document.getElementById('tab-multimodal').style.display = tabName === 'multimodal' ? 'block' : 'none';
+      document.getElementById('tab-enroll').style.display = tabName === 'enroll' ? 'block' : 'none';
+      
+      document.getElementById('tab-btn-multi').className = tabName === 'multimodal' ? 'btn btn-sm btn-info text-dark font-weight-bold' : 'btn btn-sm btn-outline-secondary text-white';
+      document.getElementById('tab-btn-enroll').className = tabName === 'enroll' ? 'btn btn-sm btn-info text-dark font-weight-bold' : 'btn btn-sm btn-outline-secondary text-white';
+
+      if (tabName === 'multimodal') {
+        startStudentCamera();
+      } else {
+        stopStudentCamera();
+      }
+    }
+
+    async function startStudentCamera() {
+      stopStudentCamera();
+      const videoElem = document.getElementById('student-webcam');
+      if (!videoElem) return;
+      try {
+        studentCameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        videoElem.srcObject = studentCameraStream;
+      } catch (err) {
+        showToast('Camera or Microphone access denied. Please grant browser permissions.', 'error');
+      }
+    }
+
+    function stopStudentCamera() {
+      if (studentCameraStream) {
+        studentCameraStream.getTracks().forEach(t => t.stop());
+        studentCameraStream = null;
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-      // Prefer JWT-stored student, fall back to sessionStorage
       const student = Auth.getStudent() || VocalID.get('student_info');
       if (student) {
         const name = student.name || '';
         const roll = student.studentId || student.roll || '';
-        document.getElementById('student-greeting').textContent = `Welcome, ${name} (${roll})`;
-        document.getElementById('prompt1').textContent = `"My name is ${name}"`;
-        document.getElementById('prompt2').textContent = `"Roll number ${roll}"`;
+        document.getElementById('student-greeting').textContent = `Logged in as: ${name} (${roll})`;
+        document.getElementById('verification-prompt').textContent = `"My name is ${name}, roll number ${roll}, verifying my attendance"`;
       }
+      startStudentCamera();
     });
 
-    /* ── Record & upload logic ──────────────────────── */
+    async function performStudentMultimodalAttendance() {
+      const btn = document.getElementById('btn-submit-multimodal');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Recording & Running 3-Factor Multimodal Fusion...`;
+
+      document.getElementById('multi-waveform').style.display = 'flex';
+      document.getElementById('multi-status').style.display = 'block';
+      document.getElementById('multi-status').textContent = 'Recording prompt voice & face motion for 3 seconds... Speak now!';
+
+      const video = document.getElementById('student-webcam');
+      const canvas = document.getElementById('student-canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const faceBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+
+      let stream = studentCameraStream;
+      if (!stream) stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+
+      const mimeType = MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
+      const recorder = new MediaRecorder(stream, { mimeType });
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.start();
+
+      await new Promise(r => setTimeout(r, 3200));
+
+      const videoBlob = await new Promise(resolve => {
+        recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+        recorder.stop();
+      });
+
+      document.getElementById('multi-waveform').style.display = 'none';
+      document.getElementById('multi-status').textContent = 'Processing Multimodal Decision Matrix...';
+
+      const resData = await markAttendance({
+        subject: 'General',
+        audioBlob: videoBlob,
+        faceBlob,
+        videoBlob
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Record & Submit Multimodal Attendance`;
+      document.getElementById('multi-status').style.display = 'none';
+
+      const card = document.getElementById('fusion-result-card');
+      card.style.display = 'block';
+
+      if (resData && resData.fusion) {
+        const f = resData.fusion;
+        const box = document.getElementById('fusion-status-box');
+
+        if (f.verified) {
+          box.style.background = 'rgba(0, 229, 160, 0.12)';
+          box.style.border = '1px solid rgba(0, 229, 160, 0.4)';
+          document.getElementById('fusion-status-title').style.color = 'var(--accent-emerald)';
+          document.getElementById('fusion-status-title').textContent = '✓ MULTIMODAL ATTENDANCE VERIFIED & RECORDED';
+        } else {
+          box.style.background = 'rgba(255, 77, 109, 0.12)';
+          box.style.border = '1px solid rgba(255, 77, 109, 0.4)';
+          document.getElementById('fusion-status-title').style.color = 'var(--accent-rose)';
+          document.getElementById('fusion-status-title').textContent = '✕ MULTIMODAL VERIFICATION REJECTED';
+        }
+
+        document.getElementById('fusion-status-reason').textContent = f.reason || resData.message || '';
+        document.getElementById('card-voice-score').textContent = (f.voiceScore || 0) + '%';
+        document.getElementById('card-face-score').textContent = (f.faceScore || 0) + '%';
+        document.getElementById('card-lipsync-score').textContent = (f.livenessScore || 0) + '%';
+        document.getElementById('card-final-score').textContent = (f.finalScore || 0) + '%';
+      }
+    }
+
     async function recordVoiceSample() {
       if (voiceSamplesRecorded >= TOTAL_SAMPLES) return;
-
       const btn = document.getElementById('record-btn');
       const wf = document.getElementById('recording-waveform');
       const st = document.getElementById('recording-status');
 
-      // Request mic access
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch (err) {
-        showToast('Microphone access denied. Please allow microphone and try again.', 'error');
+        showToast('Microphone access denied.', 'error');
         return;
       }
 
       btn.disabled = true;
-      btn.innerHTML = '<div class="rec-dot" style="width:7px;height:7px;border-radius:50%;background:#ff4d6d;animation:pulse 1s infinite;display:inline-block;"></div> Recording…';
+      btn.innerHTML = 'Recording…';
       wf.style.display = 'flex';
       st.style.display = 'flex';
 
       audioChunks = [];
       const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
       mediaRecorder = new MediaRecorder(stream, { mimeType });
-
       mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
       mediaRecorder.start();
 
-      // Record for 3 seconds then stop
       setTimeout(() => { mediaRecorder.stop(); stream.getTracks().forEach(t => t.stop()); }, 3000);
 
       mediaRecorder.onstop = async () => {
         voiceSamplesRecorded++;
         lastAudioBlob = new Blob(audioChunks, { type: mimeType });
 
-        // Update progress UI
         document.getElementById('sample-progress').style.width = (voiceSamplesRecorded / TOTAL_SAMPLES * 100) + '%';
         document.getElementById('sample-count').textContent = `${voiceSamplesRecorded} / ${TOTAL_SAMPLES} samples`;
 
-        // Add sample row
         const li = document.getElementById('samples-list');
         const item = document.createElement('div');
         item.className = 'sample-item';
         item.innerHTML = `<div class="d-flex align-items-center gap-2">
-        <svg width="13" height="13" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
-        <span style="font-size:.72rem;font-family:var(--font-mono);color:var(--accent-emerald);">S-0${voiceSamplesRecorded}</span>
-        <span style="font-size:.82rem;color:var(--text-secondary);">Sample ${voiceSamplesRecorded} captured</span>
-      </div><span style="font-size:.7rem;font-family:var(--font-mono);color:var(--text-muted);">3.0s</span>`;
+        <span style="font-size:.72rem;font-family:var(--font-mono);color:var(--accent-emerald);">Sample ${voiceSamplesRecorded} captured</span>
+      </div>`;
         li.appendChild(item);
 
         wf.style.display = 'none';
         st.style.display = 'none';
 
         if (voiceSamplesRecorded >= TOTAL_SAMPLES) {
-          // All samples collected — upload the last blob to the backend
-          btn.innerHTML = '<div class="spinner"></div> Uploading to server…';
-
+          btn.innerHTML = 'Uploading sample…';
           const ext = mimeType === 'audio/webm' ? 'webm' : 'ogg';
           const uploaded = await uploadVoiceSample(lastAudioBlob, `voice.${ext}`);
 
           if (uploaded) {
-            btn.style.display = 'none';
-            document.getElementById('complete-registration').style.display = 'block';
-            document.getElementById('mark-attendance-section').style.display = 'block';
+            btn.innerHTML = '✓ Voice Profile Updated';
+            btn.disabled = true;
           } else {
-            // Allow retry
             btn.disabled = false;
             btn.innerHTML = 'Retry Upload';
-            voiceSamplesRecorded = TOTAL_SAMPLES - 1;
-            document.getElementById('sample-progress').style.width = ((TOTAL_SAMPLES - 1) / TOTAL_SAMPLES * 100) + '%';
-            document.getElementById('sample-count').textContent = `${TOTAL_SAMPLES - 1} / ${TOTAL_SAMPLES} samples`;
           }
         } else {
           btn.disabled = false;
-          btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg> Record Next Sample`;
+          btn.innerHTML = `Record Sample ${voiceSamplesRecorded + 1}`;
         }
       };
     }
-
-    /* ── Mark attendance: record fresh voice clip then verify ─ */
-    let isMarkingAttendance = false;
-
-    async function handleMarkAttendance() {
-      if (isMarkingAttendance) return;
-      const btn = document.querySelector('#mark-attendance-section button');
-
-      // Step 1: record a short clip for identity verification
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (err) {
-        showToast('Microphone access denied. Cannot verify voice identity.', 'error');
-        return;
-      }
-
-      isMarkingAttendance = true;
-      btn.disabled = true;
-      btn.innerHTML = '<div class="spinner"></div> Recording for verification…';
-
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-      const recorder = new MediaRecorder(stream, { mimeType });
-      const chunks = [];
-
-      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-      recorder.start();
-
-      // Record for 3 seconds
-      await new Promise(resolve => setTimeout(() => {
-        recorder.stop();
-        stream.getTracks().forEach(t => t.stop());
-        resolve();
-      }, 3000));
-
-      // Wait for onstop to fire
-      await new Promise(resolve => { recorder.onstop = resolve; });
-
-      const audioBlob = new Blob(chunks, { type: mimeType });
-      const ext = mimeType.includes('webm') ? 'webm' : 'ogg';
-
-      btn.innerHTML = '<div class="spinner"></div> Verifying voice…';
-
-      const ok = await markAttendance({
-        subject: 'General',
-        audioBlob,
-        audioBlobName: `attendance.${ext}`
-      });
-
-      isMarkingAttendance = false;
-      btn.disabled = false;
-
-      if (ok) {
-        btn.innerHTML = '✅ Attendance Marked';
-        btn.style.opacity = '0.6';
-        btn.disabled = true;
-      } else {
-        btn.innerHTML = `<svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Retry Attendance`;
-      }
-    }
   </script>
 </body>
-
 </html>

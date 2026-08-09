@@ -272,52 +272,35 @@ async function markAttendance(opts = {}) {
     if (!token) {
       showToast('Please log in before marking attendance.', 'error');
       window.location.href = 'student-login.html';
-      return false;
+      return null;
     }
 
-    let res, data;
+    const formData = new FormData();
+    if (opts.audioBlob) formData.append('voiceSample', opts.audioBlob, 'attendance_voice.webm');
+    if (opts.faceBlob) formData.append('faceFrame', opts.faceBlob, 'attendance_face.jpg');
+    if (opts.videoBlob) formData.append('videoClip', opts.videoBlob, 'attendance_video.webm');
+    if (opts.subject) formData.append('subject', opts.subject || 'General');
 
-    if (opts.audioBlob) {
-      // ── ML path: send voice recording as multipart ──────────────
-      const ext = opts.audioBlob.type.includes('webm') ? 'webm' : 'ogg';
-      const filename = opts.audioBlobName || `attendance.${ext}`;
-      const formData = new FormData();
-      formData.append('voiceSample', opts.audioBlob, filename);
-      if (opts.subject) formData.append('subject', opts.subject);
+    const res = await fetch(API_URL + '/mark-attendance', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
 
-      res = await fetch(API_URL + '/mark-attendance', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-    } else {
-      // ── Degraded path: no audio, JSON body ──────────────────────
-      res = await fetch(API_URL + '/mark-attendance', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject: opts.subject || 'General', method: opts.method || 'manual' })
-      });
-    }
-
-    data = await res.json();
-
+    const data = await res.json();
     if (res.ok && data.success) {
-      const conf = data.attendance?.confidence;
-      const confStr = conf != null ? ` (${conf}% confidence)` : '';
-      showToast('✅ Attendance marked successfully!' + confStr, 'success');
-      return true;
+      showToast(data.message || '✅ Attendance verified & recorded.', 'success');
+      return data;
     }
-    if (res.status === 409) { showToast('ℹ️ Attendance already marked for today.', 'info'); return false; }
-    if (res.status === 403) {
-      const msg = data.message || 'Voice verification failed.';
-      showToast('⚠️ ' + msg, 'error');
-      return false;
+    if (res.status === 409) {
+      showToast('ℹ️ Attendance already marked for today.', 'info');
+      return data;
     }
-    showToast(data.message || 'Could not mark attendance.', 'error');
-    return false;
+    showToast(data.message || 'Multimodal verification failed.', 'error');
+    return data;
   } catch (err) {
-    showToast('Cannot reach the server. Is the backend running?', 'error');
-    return false;
+    showToast('Cannot reach the server. Is backend running?', 'error');
+    return null;
   }
 }
 

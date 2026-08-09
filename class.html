@@ -159,6 +159,57 @@
                 <tbody id="student-list"></tbody>
               </table>
             </div>
+          <!-- Continuous Voice Activity Dashboard Widget -->
+          <div class="v-table-wrap mt-4 p-3" style="background:rgba(255,255,255,0.02);border-radius:12px;border:1px solid var(--border-subtle);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div>
+                <span class="label-accent" style="font-size:0.7rem;">Live Session</span>
+                <h4 style="font-size:1.1rem;margin:0;">Continuous Classroom Voice Activity Dashboard</h4>
+              </div>
+              <div class="d-flex gap-2">
+                <button onclick="toggleActivityMonitoring()" id="btn-toggle-activity" class="btn btn-sm btn-outline-info" style="font-size:0.78rem;">
+                  ▶️ Start Session Monitoring
+                </button>
+              </div>
+            </div>
+
+            <div class="row g-2 mb-3 text-center">
+              <div class="col-4">
+                <div class="p-2" style="background:rgba(0,229,160,0.08);border-radius:8px;border:1px solid rgba(0,229,160,0.2);">
+                  <div style="font-size:0.65rem;color:var(--accent-emerald);text-transform:uppercase;">Recently Active</div>
+                  <div id="activity-count-active" style="font-size:1.1rem;font-weight:700;color:var(--accent-emerald);">0</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2" style="background:rgba(255,183,3,0.08);border-radius:8px;border:1px solid rgba(255,183,3,0.2);">
+                  <div style="font-size:0.65rem;color:var(--accent-gold);text-transform:uppercase;">Low Activity</div>
+                  <div id="activity-count-low" style="font-size:1.1rem;font-weight:700;color:var(--accent-gold);">0</div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="p-2" style="background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid var(--border-subtle);">
+                  <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">No Response</div>
+                  <div id="activity-count-none" style="font-size:1.1rem;font-weight:700;color:var(--text-muted);">0</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Activity Status Table -->
+            <div style="overflow-x:auto;">
+              <table class="w-100" style="font-size:0.82rem;">
+                <thead>
+                  <tr style="color:var(--text-muted);border-bottom:1px solid var(--border-subtle);">
+                    <th style="padding:8px;">Student ID</th>
+                    <th style="padding:8px;">Name</th>
+                    <th style="padding:8px;">Last Voice Activity</th>
+                    <th style="padding:8px;">Participation Status</th>
+                  </tr>
+                </thead>
+                <tbody id="activity-table-body">
+                  <tr><td colspan="4" class="text-center text-muted py-3">Click 'Start Session Monitoring' to track live classroom voice activity.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -503,10 +554,87 @@
       renderList();
     }
 
-    function resetAttendance() {
-      studentsData = studentsData.map(s => ({ ...s, status: 'pending', confidence: 0 }));
-      reviewQueue = [];
-      renderList();
+    let currentSessionId = null;
+    let isMonitoringActive = false;
+    let activityPollInterval = null;
+
+    async function toggleActivityMonitoring() {
+      const btn = document.getElementById('btn-toggle-activity');
+      if (!isMonitoringActive) {
+        try {
+          const res = await fetch(API_URL + '/class-session/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ classId, className })
+          });
+          const data = await res.json();
+          if (data.success && data.session) {
+            currentSessionId = data.session.sessionId;
+            isMonitoringActive = true;
+            btn.innerHTML = '⏹️ Stop Session Monitoring';
+            btn.className = 'btn btn-sm btn-outline-danger';
+            showToast('✅ Live classroom session monitoring active.', 'success');
+            pollActivityDashboard();
+            if (activityPollInterval) clearInterval(activityPollInterval);
+            activityPollInterval = setInterval(pollActivityDashboard, 4000);
+          }
+        } catch (e) {
+          showToast('Failed to start class session.', 'error');
+        }
+      } else {
+        try {
+          await fetch(API_URL + '/class-session/stop', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: currentSessionId, classId })
+          });
+        } catch (e) {}
+        isMonitoringActive = false;
+        if (activityPollInterval) clearInterval(activityPollInterval);
+        btn.innerHTML = '▶️ Start Session Monitoring';
+        btn.className = 'btn btn-sm btn-outline-info';
+        showToast('Live class session closed.', 'info');
+      }
+    }
+
+    async function pollActivityDashboard() {
+      if (!currentSessionId) return;
+      try {
+        const res = await fetch(`${API_URL}/class-session/${currentSessionId}/dashboard?classId=${classId}`);
+        const data = await res.json();
+        if (data.success && data.dashboard) {
+          const db = data.dashboard;
+          document.getElementById('activity-count-active').textContent = db.activeCount || 0;
+          document.getElementById('activity-count-low').textContent = db.lowActivityCount || 0;
+          document.getElementById('activity-count-none').textContent = db.noResponseCount || 0;
+
+          const tbody = document.getElementById('activity-table-body');
+          if (!tbody) return;
+          tbody.innerHTML = '';
+
+          (db.students || []).forEach(s => {
+            let statusBadge = '<span class="badge bg-secondary">No Response</span>';
+            if (s.status === 'Recently Active') {
+              statusBadge = '<span class="badge bg-success">Recently Active</span>';
+            } else if (s.status === 'Low Activity') {
+              statusBadge = '<span class="badge bg-warning text-dark">Low Activity</span>';
+            }
+
+            const timeStr = s.lastActivity ? new Date(s.lastActivity).toLocaleTimeString() : '—';
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+            tr.innerHTML = `
+              <td style="padding:8px;font-family:var(--font-mono);">${s.studentId}</td>
+              <td style="padding:8px;font-weight:600;">${s.name}</td>
+              <td style="padding:8px;color:var(--text-muted);">${timeStr}</td>
+              <td style="padding:8px;">${statusBadge}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+      } catch (err) {
+        console.error('Activity dashboard poll error:', err);
+      }
     }
 
     init();
