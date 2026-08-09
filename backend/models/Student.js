@@ -1,19 +1,34 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const studentSchema = new mongoose.Schema({
   studentId: { type: String, required: true, unique: true, uppercase: true, trim: true },
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true },
+  password: { type: String, required: true, select: false },
   classId: { type: String, default: 'class1' },
+  voiceSamplePath: { type: String, default: null },
+  voiceUploadedAt: { type: Date, default: null },
   isVoiceRegistered: { type: Boolean, default: false },
-  voiceRegisteredAt: { type: Date },
   voiceSamplePaths: [{ type: String }],
   isFaceRegistered: { type: Boolean, default: false },
   faceRegisteredAt: { type: Date },
   faceEmbeddings: { type: [[Number]], default: [] },
   faceSamplePaths: [{ type: String }],
   createdAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
+// Hash password before saving if modified
+studentSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(12);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
+
+// Compare plain text password with hashed password
+studentSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.models.Student || mongoose.model('Student', studentSchema);

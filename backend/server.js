@@ -14,6 +14,13 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 require('dotenv').config();
 
+// Require Database Models & Services
+const Student = require('./models/Student');
+const Attendance = require('./models/Attendance');
+const ClassSession = require('./models/ClassSession');
+const ActivityEvent = require('./models/ActivityEvent');
+const { evaluateMultimodalFusion } = require('./services/fusionService');
+
 const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────
@@ -105,141 +112,7 @@ const faceFileFilter = (req, file, cb) => {
 
 const uploadFace = multer({ storage: faceStorage, fileFilter: faceFileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
 
-// ============================================================
-//  MONGOOSE SCHEMAS & MODELS
-// ============================================================
-
-// ── Student Schema ──────────────────────────────────────────
-const studentSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true
-  },
-  studentId: {
-    type: String,
-    required: [true, 'Student ID is required'],
-    unique: true,
-    uppercase: true,
-    trim: true
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: 6,
-    select: false  // never returned in queries by default
-  },
-  voiceSamplePath: {
-    type: String,
-    default: null
-  },
-  voiceUploadedAt: {
-    type: Date,
-    default: null
-  },
-  isVoiceRegistered: {
-    type: Boolean,
-    default: false
-  },
-  embeddings: {
-    type: [[Number]], // List of 256-d embedding vectors
-    default: []
-  },
-  faceSamplePaths: {
-    type: [String],
-    default: []
-  },
-  faceRegisteredAt: {
-    type: Date,
-    default: null
-  },
-  isFaceRegistered: {
-    type: Boolean,
-    default: false
-  },
-  faceEmbeddings: {
-    type: [[Number]], // List of 128-d embedding vectors from SFace
-    default: []
-  },
-  classId: {
-    type: String,
-    enum: ['class1', 'class2'],
-    default: 'class1'
-  }
-}, { timestamps: true });
-
-// Hash password before saving
-studentSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-// Compare plain text password with hashed
-studentSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
-
-const Student = mongoose.model('Student', studentSchema);
-
-
-// ── Attendance Schema ────────────────────────────────────────
-const attendanceSchema = new mongoose.Schema({
-  student: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Student',
-    required: true
-  },
-  studentId: {
-    type: String,
-    required: true
-  },
-  studentName: {
-    type: String,
-    required: true
-  },
-  date: {
-    type: String,     // "YYYY-MM-DD" for easy date-based queries
-    required: true
-  },
-  time: {
-    type: String,     // "HH:MM:SS"
-    required: true
-  },
-  markedAt: {
-    type: Date,
-    default: Date.now
-  },
-  method: {
-    type: String,
-    enum: ['voice', 'manual'],
-    default: 'voice'
-  },
-  confidence: {
-    type: Number,
-    min: 0,
-    max: 100,
-    default: null
-  },
-  subject: {
-    type: String,
-    default: 'General'
-  }
-}, { timestamps: true });
-
-// Prevent duplicate attendance for same student on the same date
-attendanceSchema.index({ studentId: 1, date: 1 }, { unique: true });
-
-const Attendance = mongoose.model('Attendance', attendanceSchema);
+// Standardized JSON response helper
 
 
 // ============================================================
@@ -878,14 +751,6 @@ app.post('/api/process-classroom-multimodal', uploadTemp.fields([
     respond(res, 500, false, 'Server error during 3-factor multimodal attendance: ' + err.message);
   }
 });
-
-// Require Modular Database Models & Services
-const Student = require('./models/Student');
-const Attendance = require('./models/Attendance');
-const ClassSession = require('./models/ClassSession');
-const ActivityEvent = require('./models/ActivityEvent');
-const { evaluateMultimodalFusion } = require('./services/fusionService');
-
 // ────────────────────────────────────────────────────────────
 // POST /api/mark-attendance
 // Student Self-Marking Unified Multimodal Biometric Attendance (Protected JWT)
