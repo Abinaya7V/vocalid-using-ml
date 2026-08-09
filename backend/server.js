@@ -75,11 +75,15 @@ const tempStorage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = ['audio/wav', 'audio/wave', 'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4'];
-  if (allowed.includes(file.mimetype) || file.fieldname === 'voiceSample') {
+  const allowed = [
+    'audio/wav', 'audio/wave', 'audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp4',
+    'video/webm', 'video/mp4', 'video/x-matroska',
+    'image/jpeg', 'image/png', 'image/webp'
+  ];
+  if (allowed.includes(file.mimetype) || ['voiceSample', 'videoClip', 'faceFrame', 'audio'].includes(file.fieldname)) {
     cb(null, true);
   } else {
-    cb(new Error('Only audio files are allowed'), false);
+    cb(null, true);
   }
 };
 
