@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — Face Recognition</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    #app {
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+
+    .auth-panel {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .camera-box {
+      position: relative;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto 20px;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+
+    .camera-box video {
+      width: 100%;
+      height: 320px;
+      object-fit: cover;
+      display: block;
+      transform: scaleX(-1); /* Mirror camera view for standard UX */
+    }
+
+    .camera-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .face-guide-ring {
+      width: 200px;
+      height: 250px;
+      border: 2px dashed rgba(0, 212, 255, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+      transition: border-color .3s, box-shadow .3s;
+    }
+
+    .face-guide-ring.active {
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 30px rgba(0, 229, 160, 0.4);
+    }
+
+    .sample-thumbs {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .thumb-card {
+      width: 90px;
+      height: 90px;
+      border-radius: 12px;
+      background: var(--bg-glass);
+      border: 1px dashed var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .thumb-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .thumb-badge {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.7);
+      color: var(--accent-cyan);
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+    }
+
+    .nav-pills-vocalid {
+      display: flex;
+      background: var(--bg-glass);
+      padding: 4px;
+      border-radius: 100px;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+    }
+
+    .nav-pills-vocalid button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 100px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      transition: all 0.25s ease;
+    }
+
+    .nav-pills-vocalid button.active {
+      background: linear-gradient(135deg, var(--accent-cyan), #0099cc);
+      color: #000;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="auth-panel">
+      <!-- Top Navigation Header -->
+      <div class="top-header">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+            <path d="M20 8v24M14 13v14M8 17v6M26 13v14M32 17v6" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+          <span style="font-family:var(--font-display);font-size:1.4rem;font-weight:600;">VocalID</span>
+          <span class="badge bg-secondary ms-2" style="font-size:0.65rem;">FACE MODULE</span>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <a href="voice.html" class="btn btn-sm btn-outline-secondary text-white" style="font-size:0.75rem;">🎙️ Voice</a>
+          <a href="face.html" class="btn btn-sm btn-info text-dark font-weight-bold" style="font-size:0.75rem;">📷 Face</a>
+          <a href="index.html" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem;">Sign Out</a>
+        </div>
+      </div>
+
+      <!-- Mode Selector Tabs -->
+      <div class="nav-pills-vocalid">
+        <button id="tab-enroll" class="active" onclick="switchMode('enroll')">📷 Face Enrollment</button>
+        <button id="tab-verify" onclick="switchMode('verify')">🔍 Face Verification</button>
+      </div>
+
+      <!-- ================= ENROLLMENT MODE ================= -->
+      <div id="section-enroll">
+        <p class="label-accent mb-1">Biometric Face Registration</p>
+        <h2 style="font-size:1.8rem;margin-bottom:4px;">Capture Face Samples</h2>
+        <p id="student-greeting-enroll" style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:4px;"></p>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:24px;">
+          Position your face inside the guide ring. We will capture 3 samples (Front, Angle, Front) to build your face profile.
+        </p>
+
+        <!-- Progress Track -->
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;">Enrollment Progress</span>
+          <span id="enroll-sample-count" style="font-size:.7rem;font-family:var(--font-mono);color:var(--accent-cyan);">0 / 3 samples</span>
+        </div>
+        <div class="progress-track mb-3">
+          <div class="progress-fill" id="enroll-progress-bar" style="width:0%;"></div>
+        </div>
+
+        <!-- Sample Pose Guidance Prompt -->
+        <div class="prompt-card mb-4 text-center">
+          <div class="label-accent mb-1" id="pose-step-label">Step 1 of 3</div>
+          <div style="font-size:.95rem;color:var(--accent-cyan);font-weight:600;" id="pose-instruction">
+            Look straight at the camera with a neutral expression
+          </div>
+        </div>
+
+        <!-- Webcam Feed Box -->
+        <div class="camera-box">
+          <video id="webcam-enroll" autoplay playsinline muted></video>
+          <div class="camera-overlay">
+            <div class="face-guide-ring" id="guide-ring-enroll"></div>
+          </div>
+        </div>
+
+        <!-- Hidden canvas for capturing frames -->
+        <canvas id="canvas-enroll" style="display:none;"></canvas>
+
+        <!-- Action Controls -->
+        <div class="text-center mb-4">
+          <button id="btn-capture-sample" onclick="captureEnrollSample()" class="btn-vocalid justify-content-center">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+            Capture Sample 1
+          </button>
+          <button id="btn-submit-face" onclick="submitFaceEnrollment()" class="btn-vocalid emerald justify-content-center" style="display:none;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            Register Face Profile
+          </button>
+          <button id="btn-reset-samples" onclick="resetEnrollment()" class="btn btn-link text-muted mt-2" style="font-size:0.78rem;display:none;">
+            Clear & Restart Samples
+          </button>
+        </div>
+
+        <!-- Sample Thumbnails -->
+        <div class="sample-thumbs">
+          <div class="thumb-card" id="thumb-1">
+            <span style="font-size:0.7rem;color:var(--text-muted);">Sample 1</span>
+          </div>
+          <div class="thumb-card" id="thumb-2">
+            <span style="font-size:0.7rem;color:var(--text-muted);">Sample 2</span>
+          </div>
+          <div class="thumb-card" id="thumb-3">
+            <span style="font-size:0.7rem;color:var(--text-muted);">Sample 3</span>
+          </div>
+        </div>
+
+        <!-- Registration Success Box -->
+        <div id="enroll-success-box" style="display:none;" class="success-box mt-4">
+          <svg width="36" height="36" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;">
+            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div style="font-size:1rem;font-weight:600;color:var(--accent-emerald);margin-bottom:4px;">Face Profile Registered</div>
+          <div style="font-size:.8rem;color:var(--text-muted);">Your facial biometric features have been processed and saved securely.</div>
+        </div>
+      </div>
+
+
+      <!-- ================= VERIFICATION MODE ================= -->
+      <div id="section-verify" style="display:none;">
+        <p class="label-accent mb-1">Live Facial Verification</p>
+        <h2 style="font-size:1.8rem;margin-bottom:4px;">Verify Biometric Identity</h2>
+        <p id="student-greeting-verify" style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:4px;"></p>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:24px;">
+          Look directly at the camera and click "Verify My Face" to compare your live image against your registered face embedding.
+        </p>
+
+        <!-- Webcam Feed Box -->
+        <div class="camera-box">
+          <video id="webcam-verify" autoplay playsinline muted></video>
+          <div class="camera-overlay">
+            <div class="face-guide-ring" id="guide-ring-verify"></div>
+          </div>
+        </div>
+
+        <!-- Hidden canvas for capturing verification frame -->
+        <canvas id="canvas-verify" style="display:none;"></canvas>
+
+        <!-- Action Controls -->
+        <div class="text-center mb-4">
+          <button id="btn-verify-face" onclick="performFaceVerification()" class="btn-vocalid justify-content-center">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Verify My Face
+          </button>
+        </div>
+
+        <!-- Result Feedback Card -->
+        <div id="verify-result-card" style="display:none;max-width:480px;margin:0 auto;" class="prompt-card text-center">
+          <div id="verify-status-icon" class="mb-2"></div>
+          <h4 id="verify-status-title" style="font-size:1.2rem;margin-bottom:6px;"></h4>
+          <p id="verify-status-msg" style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:12px;"></p>
+
+          <div class="d-flex justify-content-around p-2" style="background:rgba(255,255,255,0.03);border-radius:8px;">
+            <div>
+              <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Face Detected</div>
+              <div id="res-face-detected" style="font-size:0.9rem;font-weight:600;color:var(--accent-cyan);">-</div>
+            </div>
+            <div>
+              <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Similarity Score</div>
+              <div id="res-similarity" style="font-size:0.9rem;font-weight:600;color:var(--accent-gold);">-</div>
+            </div>
+            <div>
+              <div style="font-size:0.65rem;color:var(--text-muted);text-transform:uppercase;">Confidence</div>
+              <div id="res-confidence" style="font-size:0.9rem;font-weight:600;color:var(--accent-emerald);">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/vocalid.js"></script>
+  <script>
+    // State management
+    let currentMode = 'enroll';
+    let mediaStream = null;
+    let capturedBlobs = [];
+    const maxSamples = 3;
+
+    const posePrompts = [
+      { step: "Step 1 of 3", instruction: "Look straight at the camera with a clear view" },
+      { step: "Step 2 of 3", instruction: "Turn your head slightly to the left / right" },
+      { step: "Step 3 of 3", instruction: "Look straight at the camera again" }
+    ];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Require student login
+      if (!VocalID.requireStudentAuth()) return;
+
+      const student = Auth.getStudent();
+      if (student) {
+        document.getElementById('student-greeting-enroll').textContent = `Logged in as: ${student.name} (${student.studentId})`;
+        document.getElementById('student-greeting-verify').textContent = `Logged in as: ${student.name} (${student.studentId})`;
+
+        if (student.isFaceRegistered) {
+          document.getElementById('enroll-success-box').style.display = 'block';
+        }
+      }
+
+      await startCamera('enroll');
+    });
+
+    async function startCamera(mode) {
+      stopCamera();
+      const videoElem = document.getElementById(mode === 'enroll' ? 'webcam-enroll' : 'webcam-verify');
+      if (!videoElem) return;
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoElem.srcObject = mediaStream;
+      } catch (err) {
+        const msg = err.name === 'NotReadableError' || err.name === 'TrackStartError'
+          ? 'Webcam is currently in use by another application or browser tab. Please close other camera tabs.'
+          : 'Camera access error: ' + (err.message || err.name);
+        showToast(msg, 'error');
+        console.error('Camera error:', err);
+      }
+    }
+
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+    }
+
+    async function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('tab-enroll').classList.toggle('active', mode === 'enroll');
+      document.getElementById('tab-verify').classList.toggle('active', mode === 'verify');
+
+      document.getElementById('section-enroll').style.display = mode === 'enroll' ? 'block' : 'none';
+      document.getElementById('section-verify').style.display = mode === 'verify' ? 'block' : 'none';
+
+      await startCamera(mode);
+    }
+
+    function captureCanvasBlob(videoElem, canvasElem) {
+      return new Promise((resolve) => {
+        canvasElem.width = videoElem.videoWidth || 640;
+        canvasElem.height = videoElem.videoHeight || 480;
+        const ctx = canvasElem.getContext('2d');
+        // Mirror horizontally to match preview video display
+        ctx.translate(canvasElem.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(videoElem, 0, 0, canvasElem.width, canvasElem.height);
+
+        canvasElem.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92);
+      });
+    }
+
+    async function captureEnrollSample() {
+      if (capturedBlobs.length >= maxSamples) return;
+
+      const video = document.getElementById('webcam-enroll');
+      const canvas = document.getElementById('canvas-enroll');
+      const blob = await captureCanvasBlob(video, canvas);
+
+      if (!blob) {
+        showToast('Failed to capture camera frame.', 'error');
+        return;
+      }
+
+      capturedBlobs.push(blob);
+      const count = capturedBlobs.length;
+
+      // Update UI thumbnails
+      const thumbCard = document.getElementById(`thumb-${count}`);
+      if (thumbCard) {
+        const imgUrl = URL.createObjectURL(blob);
+        thumbCard.innerHTML = `<img src="${imgUrl}" alt="Sample ${count}"><span class="thumb-badge">S${count}</span>`;
+      }
+
+      // Update progress bar
+      const pct = Math.round((count / maxSamples) * 100);
+      document.getElementById('enroll-progress-bar').style.width = `${pct}%`;
+      document.getElementById('enroll-sample-count').textContent = `${count} / ${maxSamples} samples`;
+
+      if (count < maxSamples) {
+        document.getElementById('pose-step-label').textContent = posePrompts[count].step;
+        document.getElementById('pose-instruction').textContent = posePrompts[count].instruction;
+        document.getElementById('btn-capture-sample').innerHTML = `
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+          Capture Sample ${count + 1}
+        `;
+        document.getElementById('btn-reset-samples').style.display = 'inline-block';
+      } else {
+        document.getElementById('pose-step-label').textContent = 'All Samples Captured!';
+        document.getElementById('pose-instruction').textContent = 'Click "Register Face Profile" to submit and train your biometric embedding.';
+        document.getElementById('btn-capture-sample').style.display = 'none';
+        document.getElementById('btn-submit-face').style.display = 'inline-flex';
+        document.getElementById('btn-reset-samples').style.display = 'inline-block';
+      }
+    }
+
+    function resetEnrollment() {
+      capturedBlobs = [];
+      for (let i = 1; i <= maxSamples; i++) {
+        document.getElementById(`thumb-${i}`).innerHTML = `<span style="font-size:0.7rem;color:var(--text-muted);">Sample ${i}</span>`;
+      }
+      document.getElementById('enroll-progress-bar').style.width = '0%';
+      document.getElementById('enroll-sample-count').textContent = `0 / ${maxSamples} samples`;
+      document.getElementById('pose-step-label').textContent = posePrompts[0].step;
+      document.getElementById('pose-instruction').textContent = posePrompts[0].instruction;
+      document.getElementById('btn-capture-sample').style.display = 'inline-flex';
+      document.getElementById('btn-capture-sample').innerHTML = `
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+        Capture Sample 1
+      `;
+      document.getElementById('btn-submit-face').style.display = 'none';
+      document.getElementById('btn-reset-samples').style.display = 'none';
+    }
+
+    async function submitFaceEnrollment() {
+      if (capturedBlobs.length < maxSamples) {
+        showToast(`Please capture all ${maxSamples} face samples first.`, 'error');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit-face');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Processing Face Profile...`;
+
+      try {
+        const res = await uploadFaceSamples(capturedBlobs);
+        if (res && res.success) {
+          document.getElementById('enroll-success-box').style.display = 'block';
+          showToast('Face profile registered successfully!', 'success');
+        } else {
+          showToast((res && res.message) || 'Face registration failed.', 'error');
+        }
+      } catch (err) {
+        showToast('Error registering face profile: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg> Register Face Profile`;
+      }
+    }
+
+    async function performFaceVerification() {
+      const btn = document.getElementById('btn-verify-face');
+      const card = document.getElementById('verify-result-card');
+      const video = document.getElementById('webcam-verify');
+      const canvas = document.getElementById('canvas-verify');
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Extracting & Comparing Features...`;
+
+      const blob = await captureCanvasBlob(video, canvas);
+      if (!blob) {
+        showToast('Could not capture video frame.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Verify My Face`;
+        return;
+      }
+
+      try {
+        const res = await verifyFace(blob);
+        card.style.display = 'block';
+
+        if (res && res.success && res.verification) {
+          const v = res.verification;
+          document.getElementById('res-face-detected').textContent = v.faceDetected ? '✓ Yes' : '✕ No';
+          document.getElementById('res-similarity').textContent = v.similarity != null ? v.similarity.toFixed(4) : '0.0000';
+          document.getElementById('res-confidence').textContent = v.confidence != null ? `${v.confidence.toFixed(1)}%` : '0%';
+
+          if (v.matched) {
+            document.getElementById('verify-status-icon').innerHTML = `
+              <svg width="42" height="42" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            `;
+            document.getElementById('verify-status-title').textContent = '✓ FACE VERIFIED MATCH';
+            document.getElementById('verify-status-title').style.color = 'var(--accent-emerald)';
+            document.getElementById('verify-status-msg').textContent = `Biometric identity confirmed for ${res.student?.name || 'Student'} (${res.student?.studentId || ''}).`;
+          } else {
+            document.getElementById('verify-status-icon').innerHTML = `
+              <svg width="42" height="42" fill="none" stroke="#ff4d6d" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+            `;
+            document.getElementById('verify-status-title').textContent = '✕ FACE VERIFICATION FAILED';
+            document.getElementById('verify-status-title').style.color = 'var(--accent-rose)';
+            document.getElementById('verify-status-msg').textContent = res.message || 'Facial feature match score is below security threshold.';
+          }
+        } else {
+          document.getElementById('verify-status-icon').innerHTML = `
+            <svg width="42" height="42" fill="none" stroke="#f0b429" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          `;
+          document.getElementById('verify-status-title').textContent = '⚠️ VERIFICATION ERROR';
+          document.getElementById('verify-status-title').style.color = 'var(--accent-gold)';
+          document.getElementById('verify-status-msg').textContent = (res && res.message) || 'Verification request failed. Please check camera position.';
+          document.getElementById('res-face-detected').textContent = '✕';
+          document.getElementById('res-similarity').textContent = '0.0000';
+          document.getElementById('res-confidence').textContent = '0%';
+        }
+      } catch (err) {
+        showToast('Error during verification: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg> Verify My Face`;
+      }
+    }
+  </script>
+</body>
+
+</html>

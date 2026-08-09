@@ -147,6 +147,120 @@ async function uploadVoiceSample(audioBlob, filename = 'voice.wav') {
 }
 
 /**
+ * POST /api/upload-face
+ * @param {Array<Blob>} imageBlobs - Array of face image Blobs
+ * @returns {Promise<object|null>}
+ */
+async function uploadFaceSamples(imageBlobs) {
+  try {
+    const token = Auth.getToken();
+    if (!token) {
+      showToast('You must be logged in to register face samples.', 'error');
+      return null;
+    }
+    const formData = new FormData();
+    const blobs = Array.isArray(imageBlobs) ? imageBlobs : [imageBlobs];
+    blobs.forEach((blob, idx) => {
+      const ext = blob.type.includes('png') ? 'png' : 'jpg';
+      formData.append('faceSamples', blob, `sample_${idx + 1}.${ext}`);
+    });
+
+    const res = await fetch(API_URL + '/upload-face', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      const student = Auth.getStudent();
+      if (student) {
+        student.isFaceRegistered = true;
+        student.faceRegisteredAt = data.face?.registeredAt || new Date();
+        Auth.saveStudent(student);
+      }
+      VocalID.set('face_enrolled', true);
+      showToast('✅ Face profile created successfully!', 'success');
+      return data;
+    }
+    showToast(data.message || 'Face enrollment failed.', 'error');
+    return data;
+  } catch (err) {
+    showToast('Cannot reach the server. Is the backend running?', 'error');
+    return null;
+  }
+}
+
+/**
+ * POST /api/verify-face
+ * @param {Blob} imageBlob - Live face image snapshot Blob
+ * @returns {Promise<object|null>}
+ */
+async function verifyFace(imageBlob) {
+  try {
+    const token = Auth.getToken();
+    if (!token) {
+      showToast('You must be logged in to verify your face.', 'error');
+      return null;
+    }
+    const formData = new FormData();
+    const ext = imageBlob.type && imageBlob.type.includes('png') ? 'png' : 'jpg';
+    formData.append('faceSample', imageBlob, `live_face.${ext}`);
+
+    const res = await fetch(API_URL + '/verify-face', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return data;
+    }
+    showToast(data.message || 'Face verification failed.', 'error');
+    return data;
+  } catch (err) {
+    showToast('Cannot reach the server. Is the backend running?', 'error');
+    return null;
+  }
+}
+
+/**
+ * POST /api/process-classroom-multimodal
+ * Faculty live 3-factor multimodal (Voice + Face + LipSync) verification
+ * @param {Blob} audioBlob - Audio recording blob
+ * @param {Blob} faceImageBlob - Live camera frame image blob
+ * @param {Blob} videoClipBlob - Live video stream recording clip blob
+ * @param {string} subject - Subject / class name
+ * @returns {Promise<object|null>}
+ */
+async function processClassroomMultimodal(audioBlob, faceImageBlob, videoClipBlob = null, subject = 'General') {
+  try {
+    const formData = new FormData();
+    if (audioBlob) formData.append('audio', audioBlob, 'classroom_voice.webm');
+    if (faceImageBlob) formData.append('faceFrame', faceImageBlob, 'classroom_face.jpg');
+    if (videoClipBlob) formData.append('videoClip', videoClipBlob, 'classroom_video.webm');
+    if (subject) formData.append('subject', subject);
+
+    const res = await fetch(API_URL + '/process-classroom-multimodal', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(data.message || '✅ 3-Factor Multimodal Attendance verified.', 'success');
+      return data;
+    }
+    showToast(data.message || 'Multimodal verification failed.', 'error');
+    return data;
+  } catch (err) {
+    showToast('Cannot reach the server. Is the backend running?', 'error');
+    return null;
+  }
+}
+
+/**
  * POST /api/mark-attendance
  * @param {object} opts - { subject, method, audioBlob, audioBlobName }
  *   audioBlob     – Blob/File of the live recording (enables full ML verification)
@@ -204,6 +318,36 @@ async function markAttendance(opts = {}) {
   } catch (err) {
     showToast('Cannot reach the server. Is the backend running?', 'error');
     return false;
+  }
+}
+
+/**
+ * POST /api/process-classroom-audio
+ * @param {Blob} audioBlob
+ * @param {string} subject
+ * @returns {Promise<object|null>}
+ */
+async function processClassroomAudio(audioBlob, subject = 'General') {
+  try {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'classroom.webm');
+    formData.append('subject', subject);
+
+    const res = await fetch(API_URL + '/process-classroom-audio', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`✅ ${data.detected_count} student(s) identified.`, 'success');
+      return data;
+    }
+    showToast(data.message || 'Processing failed.', 'error');
+    return null;
+  } catch (err) {
+    showToast('Cannot reach the server. Is the backend running?', 'error');
+    return null;
   }
 }
 

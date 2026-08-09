@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "cd backend && npm run dev",
+    "start-ml": "cd backend && python ml_service/main.py"
   },
   "keywords": [],
   "author": "",

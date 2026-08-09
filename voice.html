@@ -42,6 +42,21 @@
 <body>
   <div id="app">
     <div class="auth-panel">
+      <!-- Top Navigation Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-secondary" style="border-color:var(--border-subtle) !important;">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
+            <path d="M20 8v24M14 13v14M8 17v6M26 13v14M32 17v6" stroke="#00d4ff" stroke-width="2.5" stroke-linecap="round" />
+          </svg>
+          <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;">VocalID</span>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <a href="voice.html" class="btn btn-sm btn-info text-dark font-weight-bold" style="font-size:0.75rem;">🎙️ Voice</a>
+          <a href="face.html" class="btn btn-sm btn-outline-secondary text-white" style="font-size:0.75rem;">📷 Face</a>
+          <a href="index.html" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem;">Sign Out</a>
+        </div>
+      </div>
+
       <p class="label-accent mb-1">Voice Biometrics Enrollment</p>
       <h2 style="font-size:1.8rem;margin-bottom:4px;">Record Voice Samples</h2>
       <p id="student-greeting" style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:4px;"></p>
@@ -114,37 +129,23 @@
           </svg>
           Start Recording
         </button>
-      </div>
-
-      <!-- Mark Attendance button (shown after voice upload succeeds) -->
-      <div id="mark-attendance-section" style="display:none;" class="text-center mb-3">
-        <button onclick="handleMarkAttendance()" class="btn-vocalid justify-content-center"
-          style="background:linear-gradient(135deg,#00e5a0,#00d4ff);">
-          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-            viewBox="0 0 24 24">
-            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Mark My Attendance
-        </button>
+        <!-- Enrollment Complete Card -->
+        <div id="complete-registration" style="display:none;">
+          <div class="success-box mb-3">
+            <svg width="34" height="34" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round"
+              viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div style="font-size:.95rem;font-weight:600;color:var(--accent-emerald);margin-bottom:4px;">Voice Profile Created</div>
+            <div style="font-size:.78rem;color:var(--text-muted);">Your voice biometrics are registered securely. Your attendance will be verified live during class by your faculty.</div>
+          </div>
+          <div class="text-center">
+            <a href="face.html" class="btn-vocalid emerald justify-content-center">Next: Enroll Face Biometrics 📷</a>
+          </div>
+        </div>
       </div>
 
       <div id="samples-list"></div>
-
-      <div id="complete-registration" style="display:none;">
-        <div class="success-box">
-          <svg width="34" height="34" fill="none" stroke="#00e5a0" stroke-width="2" stroke-linecap="round"
-            viewBox="0 0 24 24" style="margin:0 auto 10px;display:block;">
-            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div style="font-size:.95rem;font-weight:600;color:var(--accent-emerald);margin-bottom:4px;">Voice Profile
-            Created</div>
-          <div style="font-size:.78rem;color:var(--text-muted);">Your biometric identity is registered and ready for
-            attendance tracking.</div>
-        </div>
-        <div class="text-center">
-          <a href="index.html" class="btn-vocalid emerald justify-content-center">Complete Enrollment</a>
-        </div>
-      </div>
     </div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

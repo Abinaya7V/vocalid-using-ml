@@ -1,9 +1,4 @@
-# VocalID ML Module – Python Dependencies
-# Install with:  pip install -r requirements.txt
-
-librosa>=0.10.0
+# VocalID ML Service - Face Recognition & LipSync Dependencies
+opencv-python>=4.8.0
 numpy>=1.24.0
-scikit-learn>=1.3.0
-joblib>=1.3.0
-soundfile>=0.12.1     # backend used by librosa for WAV/FLAC loading
-audioread>=3.0.0      # fallback decoder for mp3/webm via ffmpeg
+scipy>=1.10.0

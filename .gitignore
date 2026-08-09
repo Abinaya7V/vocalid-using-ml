@@ -1,4 +1,15 @@
 node_modules/
+backend/node_modules/
 uploads/
-.env
+venv/
+__pycache__/
+*.pyc
 *.log
+*.env
+*.webm
+*.wav
+*.mp4
+backend/temp_enroll_*
+backend/ml/__pycache__/
+backend/ml/models/*.onnx
+backend/ml/models/*.pkl

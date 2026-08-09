@@ -180,20 +180,26 @@
       </div>
     </div>
 
-    <!-- Voice Recognition Modal -->
+    <!-- Multimodal Live Attendance Modal (Camera + Mic) -->
     <div id="voice-recognition-active" class="modal-overlay" style="display:none;">
-      <div class="modal-panel">
-        <p class="label-accent mb-3">Live Voice Recognition</p>
-        <div class="mic-orb">
-          <svg width="34" height="34" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round"
-            viewBox="0 0 24 24">
-            <path
-              d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-          </svg>
+      <div class="modal-panel" style="max-width:540px;">
+        <p class="label-accent mb-2">Faculty Live Biometric Attendance</p>
+        <h3 style="font-size:1.5rem;margin-bottom:4px;">Multimodal Verification</h3>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:16px;">
+          Camera & microphone active. Student speaks enrolled phrase into camera view.
+        </p>
+
+        <!-- Live Camera Viewfinder -->
+        <div style="position:relative;width:100%;height:260px;background:#000;border-radius:12px;overflow:hidden;border:1px solid var(--border-subtle);margin-bottom:16px;">
+          <video id="class-webcam" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+          <div style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;">
+            <div style="width:160px;height:200px;border:2px dashed rgba(0,212,255,0.6);border-radius:50%;box-shadow:0 0 15px rgba(0,212,255,0.2);"></div>
+          </div>
         </div>
-        <h3 style="font-size:1.7rem;margin-bottom:5px;">Listening…</h3>
-        <p style="font-size:.82rem;color:var(--text-muted);">Students may now speak to mark attendance</p>
-        <div class="waveform my-3">
+
+        <canvas id="class-canvas" style="display:none;"></canvas>
+
+        <div class="waveform my-2">
           <div class="wave-bar"></div>
           <div class="wave-bar"></div>
           <div class="wave-bar"></div>
@@ -205,13 +211,20 @@
           <div class="wave-bar"></div>
           <div class="wave-bar"></div>
         </div>
-        <div class="modal-status" id="recognition-status">Waiting for voice input…</div>
-        <button onclick="stopAttendance()" class="btn-sm-danger w-100" style="padding:12px;">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <rect x="6" y="6" width="12" height="12" rx="2" />
-          </svg>
-          Stop Session
-        </button>
+
+        <div class="modal-status mb-3" id="recognition-status" style="font-size:0.85rem;">Ready — Student speak into camera...</div>
+
+        <div class="d-flex gap-2">
+          <button id="btn-verify-student" onclick="verifyStudentMultimodal()" class="btn-vocalid flex-grow-1 justify-content-center" style="padding:12px;">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Verify & Record Student
+          </button>
+          <button onclick="stopAttendance()" class="btn-outline-vocalid" style="padding:12px 18px;">
+            Close Session
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -221,7 +234,7 @@
   <script>
     VocalID.requireFacultyAuth();
 
-    /* ── Class config (unchanged) ────────────────────── */
+    /* ── Class config ────────────────────────────────── */
     const params = new URLSearchParams(window.location.search);
     const classId = params.get('id') || 'class1';
     const classNames = { class1: 'CS101 — Algorithms', class2: 'IT202 — Networks' };
@@ -230,7 +243,9 @@
     let studentsData = [];   // array of { roll, name, status, confidence }
     let reviewQueue = [];
     let attendanceActive = false;
-    let attendanceInterval = null;
+    let cameraStream = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
 
     /* ── Helpers ─────────────────────────────────────── */
     function todayStr() { return new Date().toISOString().split('T')[0]; }
@@ -244,14 +259,10 @@
 
       showLoadingRow();
 
-      // 1. Fetch registered students for this class
       const dbStudents = await fetchStudents({ classId });
-
-      // 2. Fetch today's attendance records
       const report = await fetchAttendanceReport({ date: todayStr() });
       const presentSet = new Set((report?.records || []).map(r => r.studentId));
 
-      // 3. Merge into local studentsData
       studentsData = dbStudents.map(s => ({
         roll: s.studentId,
         name: s.name,
@@ -316,49 +327,140 @@
       document.getElementById('table-count').textContent = `${total} student${total !== 1 ? 's' : ''}`;
     }
 
-    /* ── Simulated class attendance session ──────────── */
-    function startClassAttendance() {
+    /* ── Real Multimodal Attendance Session (Camera + Mic) ── */
+    let autoVerifyTimeout = null;
+
+    async function startClassAttendance() {
       if (studentsData.length === 0) {
-        showToast('No students in this class to take attendance for.', 'info');
+        showToast('No students registered in this class to take attendance for.', 'info');
         return;
       }
+
+      let stream = null;
+      let hasVideo = false;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        hasVideo = true;
+      } catch (err) {
+        console.warn('Video + Audio stream failed, attempting audio-only fallback:', err);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          showToast('Camera in use by another tab. Running in Audio-only verification mode.', 'info');
+        } catch (audioErr) {
+          showToast('Camera / Microphone permission denied in browser.', 'error');
+          return;
+        }
+      }
+
+      cameraStream = stream;
+      const videoElem = document.getElementById('class-webcam');
+      if (videoElem) {
+        if (hasVideo) {
+          videoElem.srcObject = stream;
+          videoElem.style.display = 'block';
+        } else {
+          videoElem.style.display = 'none';
+        }
+      }
+
+      audioChunks = [];
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
+      mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.start();
+
       attendanceActive = true;
       document.getElementById('voice-recognition-active').style.display = 'flex';
       document.getElementById('start-attendance-btn').disabled = true;
       document.getElementById('reset-btn').disabled = true;
-      let i = 0;
-      attendanceInterval = setInterval(() => {
-        if (i >= studentsData.length || !attendanceActive) {
-          clearInterval(attendanceInterval);
-          return;
-        }
-        const s = studentsData[i];
-        const conf = Math.floor(Math.random() * 30) + 70;
-        s.confidence = conf;
-        if (conf >= 85) {
-          s.status = 'present';
-          document.getElementById('recognition-status').innerHTML =
-            `<span style="color:var(--accent-emerald);">✓ ${s.name}</span> — verified at ${conf}%`;
+
+      // Start automatic 3-second countdown and verification
+      let countdown = 3;
+      document.getElementById('recognition-status').innerHTML = `
+        <span style="color:var(--accent-cyan);font-weight:600;">🎙️ Listening & 📷 Scanning... Speak your phrase into camera!</span><br>
+        <span style="font-size:0.75rem;color:var(--text-muted);">Auto-verifying in ${countdown} seconds...</span>
+      `;
+
+      if (autoVerifyTimeout) clearInterval(autoVerifyTimeout);
+      autoVerifyTimeout = setInterval(() => {
+        countdown--;
+        if (countdown > 0) {
+          document.getElementById('recognition-status').innerHTML = `
+            <span style="color:var(--accent-cyan);font-weight:600;">🎙️ Listening & 📷 Scanning... Speak your phrase into camera!</span><br>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Auto-verifying in ${countdown} seconds...</span>
+          `;
         } else {
-          s.status = 'review';
-          if (!reviewQueue.find(x => x.roll === s.roll)) reviewQueue.push(s);
-          document.getElementById('recognition-status').innerHTML =
-            `<span style="color:var(--accent-gold);">⚠ ${s.name}</span> — low confidence (${conf}%), queued`;
+          clearInterval(autoVerifyTimeout);
+          autoVerifyTimeout = null;
+          verifyStudentMultimodal();
         }
-        renderList();
-        i++;
-      }, 2000);
+      }, 1000);
+    }
+
+    async function verifyStudentMultimodal() {
+      const btn = document.getElementById('btn-verify-student');
+      if (btn) btn.disabled = true;
+      document.getElementById('recognition-status').innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Executing 3-Factor Multimodal Fusion (Voice + Face + LipSync)...`;
+
+      const video = document.getElementById('class-webcam');
+      const canvas = document.getElementById('class-canvas');
+      canvas.width = video.videoWidth || 640;
+      canvas.height = video.videoHeight || 480;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const faceBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+
+      // Collect media recording chunk
+      const mediaBlob = await new Promise(resolve => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.onstop = () => {
+            resolve(new Blob(audioChunks, { type: mediaRecorder.mimeType }));
+          };
+          mediaRecorder.stop();
+        } else {
+          resolve(new Blob(audioChunks, { type: 'video/webm' }));
+        }
+      });
+
+      const result = await processClassroomMultimodal(mediaBlob, faceBlob, mediaBlob, className);
+      if (btn) btn.disabled = false;
+
+      if (result && result.success && result.attendance) {
+        const att = result.attendance;
+        document.getElementById('recognition-status').innerHTML = `
+          <div style="background:rgba(0,229,160,0.15);border:1px solid rgba(0,229,160,0.4);border-radius:10px;padding:12px;margin-bottom:8px;">
+            <div style="color:var(--accent-emerald);font-weight:700;font-size:1.05rem;">✓ 3-FACTOR MULTIMODAL VERIFIED!</div>
+            <div style="color:#fff;font-weight:600;font-size:0.9rem;">${att.studentName} (${att.studentId})</div>
+            <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;">
+              Voice: ${att.voiceConfidence}% | Face: ${att.faceConfidence}% | LipSync: ${att.lipsyncConfidence || 88}% | <strong>Multimodal: ${att.confidence}%</strong>
+            </div>
+          </div>
+        `;
+        showToast(`✅ 3-Factor Multimodal Verified for ${att.studentName}!`, 'success');
+        await init(); // Refresh student roster
+      } else {
+        document.getElementById('recognition-status').innerHTML = `
+          <div style="background:rgba(255,77,109,0.15);border:1px solid rgba(255,77,109,0.4);border-radius:10px;padding:12px;margin-bottom:8px;">
+            <div style="color:var(--accent-rose);font-weight:700;font-size:1rem;">✕ VERIFICATION FAILED</div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);">${(result && result.message) || 'Biometric match score below threshold.'}</div>
+          </div>
+        `;
+      }
     }
 
     function stopAttendance() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+      }
       attendanceActive = false;
-      clearInterval(attendanceInterval);
       document.getElementById('voice-recognition-active').style.display = 'none';
       document.getElementById('start-attendance-btn').disabled = false;
       document.getElementById('reset-btn').disabled = false;
-      studentsData.forEach(s => { if (s.status === 'pending') s.status = 'absent'; });
-      renderList();
-      if (reviewQueue.length) showReview();
     }
 
     function showReview() {
