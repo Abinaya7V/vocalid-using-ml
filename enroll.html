@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — Biometric Enrollment</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    #app {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .auth-panel {
+      max-width: 560px;
+      width: 100%;
+    }
+
+    .cam-box {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 16px;
+    }
+
+    .cam-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 13px;
+      height: 13px;
+      border: 2px solid rgba(255, 255, 255, .3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="auth-panel">
+
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom:1px solid var(--border-subtle);">
+        <div class="d-flex align-items-center gap-2">
+          <svg width="24" height="24" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
+            <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+            <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
+          </svg>
+          <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;">VocalID</span>
+        </div>
+        <a href="index.html" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem;">Sign Out</a>
+      </div>
+
+      <p class="label-accent mb-1">Biometric Enrollment</p>
+      <h2 style="font-size:1.7rem;margin-bottom:2px;" id="student-greeting"></h2>
+      <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:18px;">
+        Look at the camera and read the phrase aloud. Voice, face and lip-sync are captured together —
+        this only needs to happen once.
+      </p>
+
+      <!-- Progress -->
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="label-accent" id="progress-label">SAMPLE 1 / 3</span>
+        <span style="font-size:.72rem;color:var(--text-muted);" id="progress-pct">0%</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:20px;">
+        <div id="progress-bar" style="height:100%;width:0%;background:var(--accent-cyan);transition:width .3s;"></div>
+      </div>
+
+      <!-- Camera -->
+      <div class="cam-box">
+        <video id="cam" autoplay playsinline muted></video>
+      </div>
+
+      <!-- Live mic level meter — shows what the browser is ACTUALLY capturing,
+           independent of the server/Python pipeline. If this bar barely
+           moves while you're speaking normally, the problem is here
+           (mic positioning/gain), not in any ML code. -->
+      <div class="d-flex align-items-center gap-2 mb-3" style="font-size:.72rem;color:var(--text-muted);">
+        <span>MIC LEVEL</span>
+        <div style="flex:1;height:10px;background:rgba(255,255,255,.08);border-radius:5px;overflow:hidden;">
+          <div id="mic-level-bar" style="height:100%;width:0%;background:var(--accent-emerald);transition:width .08s linear;"></div>
+        </div>
+      </div>
+
+      <canvas id="snap-canvas" style="display:none;"></canvas>
+
+      <!-- Phrase prompt -->
+      <div class="prompt-card mb-3 text-center">
+        <div class="label-accent mb-1">Read this aloud, looking at the camera</div>
+        <div style="font-size:1rem;color:var(--accent-cyan);font-weight:600;" id="phrase-text">—</div>
+      </div>
+
+      <div id="status-line" class="modal-status mb-3 text-center" style="font-size:0.85rem;min-height:1.2em;"></div>
+
+      <button id="btn-record" onclick="recordSample()" class="btn-vocalid w-100 justify-content-center" style="padding:12px;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24">
+          <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
+        </svg>
+        Record This Sample
+      </button>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/vocalid.js"></script>
+  <script>
+    const TOTAL_SAMPLES = 3;
+    const RECORD_MS = 4000;
+
+    let cameraStream = null;
+    let currentSample = 0;
+    let faceBlobs = [];
+    let phrases = [];
+    let busy = false;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const cachedStudent = Auth.getStudent() || VocalID.get('student_info');
+      const name = (cachedStudent && cachedStudent.name) || 'Student';
+      const roll = (cachedStudent && cachedStudent.studentId) || (cachedStudent && cachedStudent.roll) || '';
+      document.getElementById('student-greeting').textContent = `${name} (${roll})`;
+
+      // Always check the SERVER's current lock status — a locally cached
+      // student object can be stale (e.g. after a faculty approval).
+      const freshProfile = await fetchMyProfile();
+      const isLocked = freshProfile ? freshProfile.isRegistrationLocked : (cachedStudent && cachedStudent.isRegistrationLocked);
+      const reqStatus = freshProfile && freshProfile.biometricUpdateRequest ? freshProfile.biometricUpdateRequest.status : 'none';
+
+      if (isLocked && reqStatus !== 'approved') {
+        document.querySelector('.cam-box').style.display = 'none';
+        document.querySelector('.prompt-card').style.display = 'none';
+        document.getElementById('btn-record').style.display = 'none';
+        document.getElementById('progress-label').parentElement.style.display = 'none';
+        setStatus('Your biometric profile is already enrolled and locked. Only your faculty can authorize changes — request an update from your dashboard.', 'error');
+        const link = document.createElement('a');
+        link.href = 'student-dashboard.html';
+        link.className = 'btn-vocalid w-100 justify-content-center d-flex mt-2';
+        link.style.padding = '12px';
+        link.textContent = 'Go to My Dashboard';
+        document.getElementById('status-line').insertAdjacentElement('afterend', link);
+        return;
+      }
+
+      if (freshProfile) {
+        document.getElementById('student-greeting').textContent = `${freshProfile.name} (${freshProfile.studentId})`;
+      }
+
+      phrases = [
+        `My name is ${name}, roll number ${roll}.`,
+        `I am enrolling my biometric profile with VocalID.`,
+        `This is my voice, my face, and my presence.`
+      ];
+
+      updateProgressUI();
+      setPhraseText();
+
+      try {
+        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        document.getElementById('cam').srcObject = cameraStream;
+
+        const audioTracks = cameraStream.getAudioTracks();
+        if (audioTracks.length === 0) {
+          setStatus('⚠️ No microphone track was granted — video works but audio won\'t be recorded. Check your browser\'s microphone permission for this site and your OS mic settings, then reload this page.', 'error');
+          document.getElementById('btn-record').disabled = true;
+        } else if (!audioTracks[0].enabled || audioTracks[0].muted) {
+          setStatus('⚠️ Your microphone track is muted at the OS/browser level. Check Windows Sound settings and Chrome\'s site permissions, then reload this page.', 'error');
+        } else {
+          console.log('[Enroll] Microphone track OK:', audioTracks[0].label || '(unnamed device)');
+          startMicLevelMeter(cameraStream);
+        }
+      } catch (err) {
+        setStatus('Camera / microphone permission is required to enroll.', 'error');
+        document.getElementById('btn-record').disabled = true;
+      }
+    });
+
+    function startMicLevelMeter(stream) {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.6;
+        source.connect(analyser);
+
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        const bar = document.getElementById('mic-level-bar');
+
+        function tick() {
+          analyser.getByteTimeDomainData(data);
+          let sumSquares = 0;
+          for (let i = 0; i < data.length; i++) {
+            const v = (data[i] - 128) / 128;
+            sumSquares += v * v;
+          }
+          const rms = Math.sqrt(sumSquares / data.length);   // 0..1 scale
+          const pct = Math.min(100, Math.round(rms * 100 * 6));  // scaled up for visibility
+          bar.style.width = pct + '%';
+          bar.style.background = pct > 8 ? 'var(--accent-emerald)' : 'var(--accent-rose)';
+          requestAnimationFrame(tick);
+        }
+        tick();
+      } catch (err) {
+        console.warn('Mic level meter could not start:', err);
+      }
+    }
+
+    function setPhraseText() {
+      document.getElementById('phrase-text').textContent = phrases[currentSample] || '—';
+    }
+
+    function updateProgressUI() {
+      document.getElementById('progress-label').textContent = `SAMPLE ${Math.min(currentSample + 1, TOTAL_SAMPLES)} / ${TOTAL_SAMPLES}`;
+      const pct = Math.round((currentSample / TOTAL_SAMPLES) * 100);
+      document.getElementById('progress-pct').textContent = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+    }
+
+    function setStatus(msg, type) {
+      const el = document.getElementById('status-line');
+      el.textContent = msg;
+      el.style.color = type === 'error' ? 'var(--accent-rose)' : (type === 'success' ? 'var(--accent-emerald)' : 'var(--text-secondary)');
+    }
+
+    async function recordSample() {
+      if (busy || !cameraStream) return;
+      busy = true;
+      const btn = document.getElementById('btn-record');
+      btn.disabled = true;
+
+      try {
+        // 1. Snapshot a face frame from the live preview
+        const video = document.getElementById('cam');
+        const canvas = document.getElementById('snap-canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const faceSnapshot = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+
+        // 2. Record a short video+audio clip while the student reads the phrase
+        setStatus(`Recording… speak the phrase now (${RECORD_MS / 1000}s)`, null);
+        const mimeType = MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
+        const recorder = new MediaRecorder(cameraStream, { mimeType });
+        const chunks = [];
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+        const clipBlob = await new Promise(resolve => {
+          recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+          recorder.start();
+          setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, RECORD_MS);
+        });
+
+        // 3. Liveness check — reject a silent / static-photo take immediately
+        setStatus('Checking lip-sync & liveness…', null);
+        const liveness = await checkLivenessSample(clipBlob);
+
+        if (!liveness || !liveness.passed) {
+          setStatus((liveness && liveness.reason) || 'Liveness check failed. Please try again, speaking clearly into the camera.', 'error');
+          btn.disabled = false;
+          busy = false;
+          return;
+        }
+
+        // 4. Save this sample's voice clip immediately
+        setStatus('Saving voice sample…', null);
+        const voiceOk = await uploadVoiceSample(clipBlob, `sample_${currentSample + 1}.webm`);
+        if (!voiceOk) {
+          setStatus('Could not save voice sample — please try again.', 'error');
+          btn.disabled = false;
+          busy = false;
+          return;
+        }
+
+        // Face sample is collected locally and uploaded once, after the last sample
+        faceBlobs.push(faceSnapshot);
+
+        currentSample++;
+        updateProgressUI();
+
+        if (currentSample >= TOTAL_SAMPLES) {
+          await finishEnrollment();
+        } else {
+          setPhraseText();
+          setStatus(`Sample ${currentSample} saved. Ready for the next phrase.`, 'success');
+          btn.disabled = false;
+        }
+
+      } catch (err) {
+        console.error(err);
+        setStatus('Something went wrong recording that sample. Please try again.', 'error');
+        btn.disabled = false;
+      } finally {
+        busy = false;
+      }
+    }
+
+    async function finishEnrollment() {
+      setStatus('Saving your face profile…', null);
+      document.getElementById('btn-record').style.display = 'none';
+
+      const faceResult = await uploadFaceSamples(faceBlobs);
+      if (!faceResult || !faceResult.success) {
+        setStatus('Face enrollment failed — please refresh and try again.', 'error');
+        return;
+      }
+
+      setStatus('Finalizing and locking your biometric profile…', null);
+      const lockResult = await lockRegistration();
+      if (!lockResult || !lockResult.success) {
+        setStatus((lockResult && lockResult.message) || 'Could not lock your profile yet.', 'error');
+        return;
+      }
+
+      if (cameraStream) cameraStream.getTracks().forEach(t => t.stop());
+      setStatus('✅ Enrollment complete! Redirecting…', 'success');
+      setTimeout(() => { window.location.href = 'student-dashboard.html'; }, 1500);
+    }
+  </script>
+</body>
+</html>

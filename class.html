@@ -96,16 +96,74 @@
                 </svg>
                 Reset
               </button>
-              <button id="start-attendance-btn" onclick="startClassAttendance()" class="btn-vocalid flex-shrink-0">
-                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                  viewBox="0 0 24 24">
-                  <path
-                    d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-                Start Attendance
-              </button>
             </div>
           </div>
+          <p style="font-size:.72rem;color:var(--text-muted);margin-top:-8px;margin-bottom:16px;">
+            Roll call is the primary attendance mechanism — each student is verified in turn by voice, face and lip-sync together.
+          </p>
+
+          <!-- Roll-by-Roll Attendance Engine -->
+          <div class="v-table-wrap mb-4 p-4" id="rollcall-panel">
+
+            <div id="rollcall-start-view">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                  <span class="label-accent" style="font-size:.7rem;">Primary Attendance</span>
+                  <h4 style="font-size:1.15rem;margin:2px 0 2px;">Today's Roll Call</h4>
+                  <p style="font-size:.78rem;color:var(--text-muted);margin:0;">Automatically verifies each enrolled student's voice, face and lip-sync, one at a time, in roll order.</p>
+                </div>
+                <button id="btn-start-rollcall" onclick="startRollCall()" class="btn-vocalid" style="padding:10px 20px;">
+                  ▶ Start Attendance For Today
+                </button>
+              </div>
+            </div>
+
+            <div id="rollcall-active-view" style="display:none;">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="label-accent" id="rollcall-progress-label" style="font-size:.7rem;">STUDENT 1 / 1</span>
+                <span style="font-size:.72rem;color:var(--text-muted);" id="rollcall-progress-pct">0%</span>
+              </div>
+              <div style="height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:18px;">
+                <div id="rollcall-progress-bar" style="height:100%;width:0%;background:var(--accent-cyan);transition:width .3s;"></div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div style="position:relative;width:100%;height:220px;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--border-subtle);">
+                    <video id="rollcall-cam" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+                  </div>
+                  <canvas id="rollcall-canvas" style="display:none;"></canvas>
+                </div>
+                <div class="col-md-6">
+                  <div class="prompt-card mb-2">
+                    <div class="label-accent mb-1" style="font-size:.68rem;">Now Verifying</div>
+                    <div id="rollcall-current-name" style="font-size:1.15rem;font-weight:700;color:var(--text-primary);">—</div>
+                    <div id="rollcall-current-roll" style="font-size:.78rem;color:var(--text-muted);">—</div>
+                  </div>
+                  <div id="rollcall-status" class="modal-status mb-3" style="font-size:.82rem;min-height:2.4em;">Ready.</div>
+                  <button id="btn-rollcall-capture" onclick="captureRollCallSample()" class="btn-vocalid w-100 justify-content-center" style="padding:11px;">
+                    🎙️ Capture &amp; Verify
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div id="rollcall-done-view" style="display:none;">
+              <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                  <span class="label-accent" style="font-size:.7rem;">Attendance Completed</span>
+                  <h4 style="font-size:1.15rem;margin:2px 0;">Today's Results</h4>
+                </div>
+                <div style="font-size:.85rem;">
+                  <span style="color:var(--accent-emerald);font-weight:700;" id="rollcall-final-present">0</span> present ·
+                  <span style="color:var(--accent-rose);font-weight:700;" id="rollcall-final-absent">0</span> absent
+                </div>
+              </div>
+              <div id="rollcall-results-table" style="max-height:320px;overflow-y:auto;"></div>
+            </div>
+
+          </div>
+
 
           <div class="row g-3 mb-4">
             <div class="col-6">
@@ -165,12 +223,24 @@
               <div>
                 <span class="label-accent" style="font-size:0.7rem;">Live Session</span>
                 <h4 style="font-size:1.1rem;margin:0;">Continuous Classroom Voice Activity Dashboard</h4>
+                <p id="live-session-gate-note" style="font-size:.7rem;color:var(--accent-gold);margin:4px 0 0;">
+                  Complete today's roll-call attendance above before starting a live session.
+                </p>
               </div>
               <div class="d-flex gap-2">
-                <button onclick="toggleActivityMonitoring()" id="btn-toggle-activity" class="btn btn-sm btn-outline-info" style="font-size:0.78rem;">
+                <button onclick="toggleActivityMonitoring()" id="btn-toggle-activity" class="btn btn-sm btn-outline-info" style="font-size:0.78rem;" disabled title="Complete today's roll-call attendance first">
                   ▶️ Start Session Monitoring
                 </button>
               </div>
+            </div>
+
+            <!-- Live camera preview + per-cycle status, shown only while monitoring is active -->
+            <div id="live-capture-panel" style="display:none;margin-bottom:14px;">
+              <div style="position:relative;width:100%;max-width:360px;height:200px;background:#000;border-radius:10px;overflow:hidden;border:1px solid var(--border-subtle);margin-bottom:8px;">
+                <video id="class-webcam" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
+              </div>
+              <canvas id="class-canvas" style="display:none;"></canvas>
+              <div id="recognition-status" class="modal-status" style="font-size:0.78rem;">Starting camera & microphone…</div>
             </div>
 
             <div class="row g-2 mb-3 text-center">
@@ -231,53 +301,6 @@
       </div>
     </div>
 
-    <!-- Multimodal Live Attendance Modal (Camera + Mic) -->
-    <div id="voice-recognition-active" class="modal-overlay" style="display:none;">
-      <div class="modal-panel" style="max-width:540px;">
-        <p class="label-accent mb-2">Faculty Live Biometric Attendance</p>
-        <h3 style="font-size:1.5rem;margin-bottom:4px;">Multimodal Verification</h3>
-        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:16px;">
-          Camera & microphone active. Student speaks enrolled phrase into camera view.
-        </p>
-
-        <!-- Live Camera Viewfinder -->
-        <div style="position:relative;width:100%;height:260px;background:#000;border-radius:12px;overflow:hidden;border:1px solid var(--border-subtle);margin-bottom:16px;">
-          <video id="class-webcam" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);"></video>
-          <div style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;">
-            <div style="width:160px;height:200px;border:2px dashed rgba(0,212,255,0.6);border-radius:50%;box-shadow:0 0 15px rgba(0,212,255,0.2);"></div>
-          </div>
-        </div>
-
-        <canvas id="class-canvas" style="display:none;"></canvas>
-
-        <div class="waveform my-2">
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-        </div>
-
-        <div class="modal-status mb-3" id="recognition-status" style="font-size:0.85rem;">Ready — Student speak into camera...</div>
-
-        <div class="d-flex gap-2">
-          <button id="btn-verify-student" onclick="verifyStudentMultimodal()" class="btn-vocalid flex-grow-1 justify-content-center" style="padding:12px;">
-            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Verify & Record Student
-          </button>
-          <button onclick="stopAttendance()" class="btn-outline-vocalid" style="padding:12px 18px;">
-            Close Session
-          </button>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -298,8 +321,302 @@
     let mediaRecorder = null;
     let audioChunks = [];
 
+    /* ── Roll-by-roll attendance engine state ───────────── */
+    let rollSession = null;
+    let rollCameraStream = null;
+    let rollBusy = false;
+
     /* ── Helpers ─────────────────────────────────────── */
     function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+    function setRollStatus(msg, type) {
+      const el = document.getElementById('rollcall-status');
+      if (!el) return;
+      el.textContent = msg;
+      el.style.color = type === 'error' ? 'var(--accent-rose)' : (type === 'success' ? 'var(--accent-emerald)' : 'var(--text-secondary)');
+    }
+
+    function showRollView(view) {
+      document.getElementById('rollcall-start-view').style.display = view === 'start' ? 'block' : 'none';
+      document.getElementById('rollcall-active-view').style.display = view === 'active' ? 'block' : 'none';
+      document.getElementById('rollcall-done-view').style.display = view === 'done' ? 'block' : 'none';
+    }
+
+    function enableLiveSessionIfReady() {
+      const ready = rollSession && rollSession.status === 'completed';
+      const btn = document.getElementById('btn-toggle-activity');
+      const note = document.getElementById('live-session-gate-note');
+      if (ready) {
+        btn.disabled = false;
+        btn.title = '';
+        note.style.display = 'none';
+      } else {
+        btn.disabled = true;
+        btn.title = "Complete today's roll-call attendance first";
+        note.style.display = 'block';
+      }
+    }
+
+    // Silent peek on page load — resumes an in-progress session or shows
+    // completed results WITHOUT creating a new session (that only happens
+    // via the explicit Start button below).
+    async function peekTodaysRollCall() {
+      try {
+        const res = await fetch(`${API_URL}/attendance-session/today?classId=${classId}`);
+        const data = await res.json();
+        if (data.success && data.session) {
+          rollSession = data.session;
+          renderRollCallState();
+        } else {
+          enableLiveSessionIfReady();
+        }
+      } catch (err) {
+        console.warn('Could not check today\'s attendance session:', err);
+      }
+    }
+
+    async function startRollCall() {
+      const btn = document.getElementById('btn-start-rollcall');
+      btn.disabled = true;
+      btn.textContent = 'Starting…';
+      try {
+        const res = await fetch(`${API_URL}/attendance-session/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ classId, className })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showToast(data.message || 'Could not start attendance.', 'error');
+          btn.disabled = false;
+          btn.textContent = '▶ Start Attendance For Today';
+          return;
+        }
+        rollSession = data.session;
+        renderRollCallState();
+      } catch (err) {
+        showToast('Cannot reach the server. Is the backend running?', 'error');
+        btn.disabled = false;
+        btn.textContent = '▶ Start Attendance For Today';
+      }
+    }
+
+    function renderRollCallState() {
+      if (!rollSession) { showRollView('start'); return; }
+
+      if (rollSession.status === 'completed') {
+        if (rollCameraStream) { rollCameraStream.getTracks().forEach(t => t.stop()); rollCameraStream = null; }
+        showRollView('done');
+        renderRollCallResults();
+      } else {
+        showRollView('active');
+        loadCurrentRollCallStudent();
+      }
+      enableLiveSessionIfReady();
+    }
+
+    function updateRollCallProgress() {
+      const total = rollSession.rollOrder.length;
+      const idx = rollSession.currentIndex;
+      document.getElementById('rollcall-progress-label').textContent = `STUDENT ${Math.min(idx + 1, total)} / ${total}`;
+      const pct = Math.round((idx / total) * 100);
+      document.getElementById('rollcall-progress-pct').textContent = pct + '%';
+      document.getElementById('rollcall-progress-bar').style.width = pct + '%';
+    }
+
+    async function loadCurrentRollCallStudent() {
+      const idx = rollSession.currentIndex;
+      const studentId = rollSession.rollOrder[idx];
+      const resultEntry = rollSession.results.find(r => r.studentId === studentId);
+      if (!resultEntry) { showToast('Could not find current student in session.', 'error'); return; }
+
+      document.getElementById('rollcall-current-name').textContent = resultEntry.studentName;
+      document.getElementById('rollcall-current-roll').textContent = studentId;
+      updateRollCallProgress();
+
+      if (!rollCameraStream) {
+        try {
+          rollCameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          document.getElementById('rollcall-cam').srcObject = rollCameraStream;
+        } catch (err) {
+          setRollStatus('Camera / microphone permission is required to run attendance.', 'error');
+          document.getElementById('btn-rollcall-capture').disabled = true;
+          return;
+        }
+      }
+
+      document.getElementById('btn-rollcall-capture').disabled = false;
+      setRollStatus(resultEntry.retryUsed
+        ? 'Retry — ask the student to read the phrase again, clearly.'
+        : 'Ready. Click Capture & Verify when the student is ready to speak.', null);
+    }
+
+    async function captureRollCallSample() {
+      if (rollBusy || !rollCameraStream || !rollSession) return;
+      rollBusy = true;
+      const btn = document.getElementById('btn-rollcall-capture');
+      btn.disabled = true;
+
+      try {
+        const video = document.getElementById('rollcall-cam');
+        const canvas = document.getElementById('rollcall-canvas');
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const faceBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+
+        setRollStatus('Recording… speak the phrase now (4s)', null);
+        const mimeType = MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
+        const recorder = new MediaRecorder(rollCameraStream, { mimeType });
+        const chunks = [];
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+        const clipBlob = await new Promise(resolve => {
+          recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+          recorder.start();
+          setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, 4000);
+        });
+
+        setRollStatus('Verifying voice, face and lip-sync…', null);
+
+        const formData = new FormData();
+        formData.append('clip', clipBlob, 'rollcall.webm');
+        formData.append('faceFrame', faceBlob, 'rollcall.jpg');
+
+        const res = await fetch(`${API_URL}/attendance-session/${rollSession._id}/submit`, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (!data.success) {
+          setRollStatus(data.message || 'Verification request failed.', 'error');
+          btn.disabled = false;
+          rollBusy = false;
+          return;
+        }
+
+        rollSession = data.session;
+
+        if (data.outcome === 'present') {
+          setRollStatus(`✓ ${data.studentName} verified — present.`, 'success');
+          await init();
+          setTimeout(() => renderRollCallState(), 1200);
+        } else if (data.outcome === 'retry') {
+          setRollStatus(`✗ Verification failed (${(data.failReasons || []).join(', ') || 'checks did not pass'}). One retry allowed — try again.`, 'error');
+          btn.disabled = false;
+        } else {
+          setRollStatus(`✗ ${data.studentName} could not be verified after retry — marked absent.`, 'error');
+          await init();
+          setTimeout(() => renderRollCallState(), 1200);
+        }
+
+      } catch (err) {
+        console.error(err);
+        setRollStatus('Something went wrong capturing that sample. Please try again.', 'error');
+        btn.disabled = false;
+      } finally {
+        rollBusy = false;
+      }
+    }
+
+    function likelyFailureCause(failReason) {
+      if (!failReason) return null;
+      const r = failReason.toLowerCase();
+      const hints = [];
+      if (r.includes('voice')) hints.push('possible microphone issue');
+      if (r.includes('face')) hints.push('possible camera/lighting issue');
+      if (r.includes('liveness') || r.includes('lip') || r.includes('audio')) hints.push('possible lip-sync/liveness read issue');
+      return hints.length ? hints.join(', ') : null;
+    }
+
+    function renderRollCallResults() {
+      const present = rollSession.results.filter(r => r.status === 'present').length;
+      const absent = rollSession.results.filter(r => r.status === 'absent').length;
+      document.getElementById('rollcall-final-present').textContent = present;
+      document.getElementById('rollcall-final-absent').textContent = absent;
+
+      const container = document.getElementById('rollcall-results-table');
+      container.innerHTML = rollSession.results.map(r => {
+        const attemptCount = (r.attempts || []).length;
+        const lastAttempt = attemptCount > 0 ? r.attempts[attemptCount - 1] : null;
+        const hint = r.status === 'absent' && lastAttempt ? likelyFailureCause(lastAttempt.failReason) : null;
+        const detailId = `rc-detail-${r.studentId}`;
+
+        const attemptsHtml = (r.attempts || []).map((a, i) => `
+          <div style="padding:8px 10px;background:rgba(255,255,255,.02);border-radius:6px;margin-bottom:6px;font-size:.72rem;">
+            <div style="display:flex;justify-content:space-between;color:var(--text-muted);margin-bottom:4px;">
+              <span>Attempt ${i + 1}${i === 0 && attemptCount > 1 ? ' (initial)' : (i > 0 ? ' (retry)' : '')}</span>
+              <span>${a.timestamp ? new Date(a.timestamp).toLocaleTimeString() : ''}</span>
+            </div>
+            <div style="display:flex;gap:14px;color:var(--text-secondary);">
+              <span>Voice: <strong style="color:${(a.voiceScore || 0) >= 50 ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${a.voiceScore ?? '—'}%</strong></span>
+              <span>Face: <strong style="color:${(a.faceScore || 0) >= 50 ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${a.faceScore ?? '—'}%</strong></span>
+              <span>LipSync: <strong style="color:${(a.lipsyncScore || 0) >= 50 ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${a.lipsyncScore ?? '—'}%</strong></span>
+            </div>
+            ${a.failReason ? `<div style="color:var(--accent-rose);margin-top:4px;">${a.failReason}</div>` : `<div style="color:var(--accent-emerald);margin-top:4px;">All checks passed</div>`}
+          </div>
+        `).join('') || '<div style="font-size:.72rem;color:var(--text-muted);">No attempts recorded.</div>';
+
+        return `
+        <div style="border-bottom:1px solid var(--border-subtle);padding:10px 0;font-size:.82rem;">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <span style="font-weight:600;color:var(--text-primary);">${r.studentName}</span>
+              <span style="color:var(--text-muted);"> (${r.studentId})</span>
+              ${r.facultyOverride ? '<span style="color:var(--accent-gold);font-size:.68rem;"> · overridden</span>' : ''}
+              ${hint ? `<div style="font-size:.68rem;color:var(--accent-gold);margin-top:2px;">⚠ ${hint}${r.overrideReason ? '' : ' — consider checking before overriding'}</div>` : ''}
+              ${r.overrideReason ? `<div style="font-size:.68rem;color:var(--text-muted);margin-top:2px;">Override note: "${r.overrideReason}"</div>` : ''}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span style="padding:2px 10px;border-radius:20px;font-size:.7rem;font-weight:600;text-transform:uppercase;
+                background:${r.status === 'present' ? 'rgba(0,229,160,0.15)' : 'rgba(255,77,109,0.15)'};
+                color:${r.status === 'present' ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${r.status}</span>
+              <button class="btn btn-sm btn-outline-secondary" style="font-size:.68rem;" onclick="toggleRollCallDetail('${r.studentId}')">Details (${attemptCount})</button>
+              <button class="btn btn-sm btn-outline-success" style="font-size:.68rem;" onclick="overrideRollCall('${r.studentId}', true)">Mark Present</button>
+              <button class="btn btn-sm btn-outline-danger" style="font-size:.68rem;" onclick="overrideRollCall('${r.studentId}', false)">Mark Absent</button>
+            </div>
+          </div>
+          <div id="${detailId}" style="display:none;margin-top:8px;">
+            ${attemptsHtml}
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    function toggleRollCallDetail(studentId) {
+      const el = document.getElementById(`rc-detail-${studentId}`);
+      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function overrideRollCall(studentId, present) {
+      let defaultReason = '';
+      if (present && rollSession) {
+        const entry = rollSession.results.find(r => r.studentId === studentId);
+        const last = entry && entry.attempts && entry.attempts.length ? entry.attempts[entry.attempts.length - 1] : null;
+        const hint = last ? likelyFailureCause(last.failReason) : null;
+        if (hint) defaultReason = hint.charAt(0).toUpperCase() + hint.slice(1);
+      }
+      const reason = window.prompt(present ? 'Reason for marking present:' : 'Reason for marking absent (optional):', defaultReason) || undefined;
+      try {
+        const res = await fetch(`${API_URL}/attendance-session/${rollSession._id}/override`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId, present, reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+          rollSession = data.session;
+          renderRollCallResults();
+          await init();
+        } else {
+          showToast(data.message || 'Override failed.', 'error');
+        }
+      } catch (err) {
+        showToast('Cannot reach the server.', 'error');
+      }
+    }
 
     /* ── Bootstrap: fetch students + today's attendance ─ */
     async function init() {
@@ -378,140 +695,41 @@
       document.getElementById('table-count').textContent = `${total} student${total !== 1 ? 's' : ''}`;
     }
 
-    /* ── Real Multimodal Attendance Session (Camera + Mic) ── */
-    let autoVerifyTimeout = null;
-
-    async function startClassAttendance() {
-      if (studentsData.length === 0) {
-        showToast('No students registered in this class to take attendance for.', 'info');
+    async function resetAttendance() {
+      if (isMonitoringActive) {
+        showToast('Stop session monitoring before resetting attendance.', 'error');
         return;
       }
+      const ok = window.confirm(
+        `Reset today's attendance for ${className}?\n\nThis clears every present record and the live activity log for this class only. This cannot be undone.`
+      );
+      if (!ok) return;
 
-      let stream = null;
-      let hasVideo = false;
+      const btn = document.getElementById('reset-btn');
+      btn.disabled = true;
+      const originalHTML = btn.innerHTML;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Resetting…';
 
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        hasVideo = true;
+        const res = await fetch(API_URL + '/class-session/reset-attendance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ classId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast(`✅ ${data.message}`, 'success');
+          await init();                 // refresh present/absent roster
+          await pollActivityDashboard(); // refresh live activity table
+        } else {
+          showToast(data.message || 'Reset failed.', 'error');
+        }
       } catch (err) {
-        console.warn('Video + Audio stream failed, attempting audio-only fallback:', err);
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          showToast('Camera in use by another tab. Running in Audio-only verification mode.', 'info');
-        } catch (audioErr) {
-          showToast('Camera / Microphone permission denied in browser.', 'error');
-          return;
-        }
+        showToast('Cannot reach the server. Is the backend running?', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
       }
-
-      cameraStream = stream;
-      const videoElem = document.getElementById('class-webcam');
-      if (videoElem) {
-        if (hasVideo) {
-          videoElem.srcObject = stream;
-          videoElem.style.display = 'block';
-        } else {
-          videoElem.style.display = 'none';
-        }
-      }
-
-      audioChunks = [];
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg';
-      mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-      mediaRecorder.start();
-
-      attendanceActive = true;
-      document.getElementById('voice-recognition-active').style.display = 'flex';
-      document.getElementById('start-attendance-btn').disabled = true;
-      document.getElementById('reset-btn').disabled = true;
-
-      // Start automatic 3-second countdown and verification
-      let countdown = 3;
-      document.getElementById('recognition-status').innerHTML = `
-        <span style="color:var(--accent-cyan);font-weight:600;">🎙️ Listening & 📷 Scanning... Speak your phrase into camera!</span><br>
-        <span style="font-size:0.75rem;color:var(--text-muted);">Auto-verifying in ${countdown} seconds...</span>
-      `;
-
-      if (autoVerifyTimeout) clearInterval(autoVerifyTimeout);
-      autoVerifyTimeout = setInterval(() => {
-        countdown--;
-        if (countdown > 0) {
-          document.getElementById('recognition-status').innerHTML = `
-            <span style="color:var(--accent-cyan);font-weight:600;">🎙️ Listening & 📷 Scanning... Speak your phrase into camera!</span><br>
-            <span style="font-size:0.75rem;color:var(--text-muted);">Auto-verifying in ${countdown} seconds...</span>
-          `;
-        } else {
-          clearInterval(autoVerifyTimeout);
-          autoVerifyTimeout = null;
-          verifyStudentMultimodal();
-        }
-      }, 1000);
-    }
-
-    async function verifyStudentMultimodal() {
-      const btn = document.getElementById('btn-verify-student');
-      if (btn) btn.disabled = true;
-      document.getElementById('recognition-status').innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Executing 3-Factor Multimodal Fusion (Voice + Face + LipSync)...`;
-
-      const video = document.getElementById('class-webcam');
-      const canvas = document.getElementById('class-canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      const ctx = canvas.getContext('2d');
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const faceBlob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
-
-      // Collect media recording chunk
-      const mediaBlob = await new Promise(resolve => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.onstop = () => {
-            resolve(new Blob(audioChunks, { type: mediaRecorder.mimeType }));
-          };
-          mediaRecorder.stop();
-        } else {
-          resolve(new Blob(audioChunks, { type: 'video/webm' }));
-        }
-      });
-
-      const result = await processClassroomMultimodal(mediaBlob, faceBlob, mediaBlob, className);
-      if (btn) btn.disabled = false;
-
-      if (result && result.success && result.attendance) {
-        const att = result.attendance;
-        document.getElementById('recognition-status').innerHTML = `
-          <div style="background:rgba(0,229,160,0.15);border:1px solid rgba(0,229,160,0.4);border-radius:10px;padding:12px;margin-bottom:8px;">
-            <div style="color:var(--accent-emerald);font-weight:700;font-size:1.05rem;">✓ 3-FACTOR MULTIMODAL VERIFIED!</div>
-            <div style="color:#fff;font-weight:600;font-size:0.9rem;">${att.studentName} (${att.studentId})</div>
-            <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:4px;">
-              Voice: ${att.voiceConfidence}% | Face: ${att.faceConfidence}% | LipSync: ${att.lipsyncConfidence || 88}% | <strong>Multimodal: ${att.confidence}%</strong>
-            </div>
-          </div>
-        `;
-        showToast(`✅ 3-Factor Multimodal Verified for ${att.studentName}!`, 'success');
-        await init(); // Refresh student roster
-      } else {
-        document.getElementById('recognition-status').innerHTML = `
-          <div style="background:rgba(255,77,109,0.15);border:1px solid rgba(255,77,109,0.4);border-radius:10px;padding:12px;margin-bottom:8px;">
-            <div style="color:var(--accent-rose);font-weight:700;font-size:1rem;">✕ VERIFICATION FAILED</div>
-            <div style="font-size:0.78rem;color:var(--text-secondary);">${(result && result.message) || 'Biometric match score below threshold.'}</div>
-          </div>
-        `;
-      }
-    }
-
-    function stopAttendance() {
-      if (cameraStream) {
-        cameraStream.getTracks().forEach(t => t.stop());
-        cameraStream = null;
-      }
-      attendanceActive = false;
-      document.getElementById('voice-recognition-active').style.display = 'none';
-      document.getElementById('start-attendance-btn').disabled = false;
-      document.getElementById('reset-btn').disabled = false;
     }
 
     function showReview() {
@@ -557,10 +775,36 @@
     let currentSessionId = null;
     let isMonitoringActive = false;
     let activityPollInterval = null;
+    let captureCycleInterval = null;
+    const CAPTURE_CYCLE_MS = 6000;   // run one voice+face+lipsync cycle every 6s
+    const CLIP_DURATION_MS = 2500;   // length of each audio/video clip captured per cycle
 
     async function toggleActivityMonitoring() {
+      if (!isMonitoringActive && (!rollSession || rollSession.status !== 'completed')) {
+        showToast("Complete today's roll-call attendance before starting a live session.", 'info');
+        return;
+      }
       const btn = document.getElementById('btn-toggle-activity');
+      const panel = document.getElementById('live-capture-panel');
+
       if (!isMonitoringActive) {
+        if (studentsData.length === 0) {
+          showToast('No students registered in this class yet.', 'info');
+          return;
+        }
+
+        // 1. Get camera + mic ONCE for the whole session
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch (err) {
+          showToast('Camera / Microphone permission denied. Both are required for live verification.', 'error');
+          return;
+        }
+        const videoElem = document.getElementById('class-webcam');
+        videoElem.srcObject = cameraStream;
+        panel.style.display = 'block';
+
+        // 2. Start the faculty-side session record
         try {
           const res = await fetch(API_URL + '/class-session/start', {
             method: 'POST',
@@ -568,32 +812,114 @@
             body: JSON.stringify({ classId, className })
           });
           const data = await res.json();
-          if (data.success && data.session) {
-            currentSessionId = data.session.sessionId;
-            isMonitoringActive = true;
-            btn.innerHTML = '⏹️ Stop Session Monitoring';
-            btn.className = 'btn btn-sm btn-outline-danger';
-            showToast('✅ Live classroom session monitoring active.', 'success');
-            pollActivityDashboard();
-            if (activityPollInterval) clearInterval(activityPollInterval);
-            activityPollInterval = setInterval(pollActivityDashboard, 4000);
+          if (!data.success || !data.session) {
+            showToast('Failed to start class session.', 'error');
+            cameraStream.getTracks().forEach(t => t.stop());
+            panel.style.display = 'none';
+            return;
           }
+          currentSessionId = data.session.sessionId;
         } catch (e) {
-          showToast('Failed to start class session.', 'error');
+          showToast('Failed to reach server to start session.', 'error');
+          cameraStream.getTracks().forEach(t => t.stop());
+          panel.style.display = 'none';
+          return;
         }
+
+        isMonitoringActive = true;
+        btn.innerHTML = '⏹️ Stop Session Monitoring';
+        btn.className = 'btn btn-sm btn-outline-danger';
+        showToast('✅ Live session started — capturing voice, face & lip-sync together.', 'success');
+
+        // 3. Run the first capture cycle immediately, then every CAPTURE_CYCLE_MS
+        runMultimodalCycle();
+        if (captureCycleInterval) clearInterval(captureCycleInterval);
+        captureCycleInterval = setInterval(runMultimodalCycle, CAPTURE_CYCLE_MS);
+
+        // 4. Keep the aggregate dashboard table refreshed too
+        pollActivityDashboard();
+        if (activityPollInterval) clearInterval(activityPollInterval);
+        activityPollInterval = setInterval(pollActivityDashboard, 4000);
+
       } else {
+        // ── Stop everything ──────────────────────────────────
+        if (captureCycleInterval) { clearInterval(captureCycleInterval); captureCycleInterval = null; }
+        if (activityPollInterval) { clearInterval(activityPollInterval); activityPollInterval = null; }
+        if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+        panel.style.display = 'none';
+
         try {
           await fetch(API_URL + '/class-session/stop', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId: currentSessionId, classId })
           });
-        } catch (e) {}
+        } catch (e) { /* ignore */ }
+
         isMonitoringActive = false;
-        if (activityPollInterval) clearInterval(activityPollInterval);
+        currentSessionId = null;
         btn.innerHTML = '▶️ Start Session Monitoring';
         btn.className = 'btn btn-sm btn-outline-info';
         showToast('Live class session closed.', 'info');
+      }
+    }
+
+    let cycleRunning = false;
+
+    /* One full cycle = capture a face frame + a short audio/video clip
+       TOGETHER, then send all three to the backend in a single request
+       so voice, face, and lip-sync are verified against the same instant
+       — not as three separate disconnected checks. */
+    async function runMultimodalCycle() {
+      if (!isMonitoringActive || !cameraStream || cycleRunning) return;
+      cycleRunning = true;
+
+      const statusEl = document.getElementById('recognition-status');
+      try {
+        statusEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Listening for a registered voice…`;
+
+        // Live Session is voice-only by design — no face capture, no
+        // lip-sync check, and it never marks attendance. It only logs
+        // classroom participation (who spoke, when) for activity reports.
+        const mimeType = MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
+        const recorder = new MediaRecorder(cameraStream, { mimeType });
+        const chunks = [];
+        recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+        const clipBlob = await new Promise((resolve) => {
+          recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
+          recorder.start();
+          setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, CLIP_DURATION_MS);
+        });
+
+        if (!isMonitoringActive) { cycleRunning = false; return; } // stopped mid-capture
+
+        statusEl.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Identifying speaker…`;
+
+        const result = await logVoiceActivity(clipBlob, classId, currentSessionId);
+
+        if (result && result.success && result.detected && result.event) {
+          const ev = result.event;
+          statusEl.innerHTML = `
+            <div style="background:rgba(0,229,160,0.15);border:1px solid rgba(0,229,160,0.4);border-radius:8px;padding:10px;">
+              <div style="color:var(--accent-emerald);font-weight:700;font-size:0.9rem;">🎙️ ${ev.studentName} (${ev.studentId}) spoke</div>
+              <div style="font-size:0.72rem;color:var(--text-secondary);margin-top:2px;">
+                Confidence ${ev.confidence}% · ${new Date(ev.timestamp).toLocaleTimeString()} · logged as activity, not attendance
+              </div>
+            </div>`;
+          // Intentionally NOT calling init() here — Live Session never
+          // affects the present/absent roster, only the activity table.
+        } else {
+          statusEl.innerHTML = `
+            <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border-subtle);border-radius:8px;padding:10px;">
+              <div style="font-size:0.78rem;color:var(--text-muted);">No recognized voice this cycle.</div>
+            </div>`;
+        }
+      } catch (err) {
+        console.error('Capture cycle error:', err);
+        statusEl.textContent = 'Capture error — retrying next cycle…';
+      } finally {
+        cycleRunning = false;
       }
     }
 
@@ -638,6 +964,7 @@
     }
 
     init();
+    peekTodaysRollCall();
   </script>
 </body>
 

@@ -105,7 +105,8 @@ async function loginStudent(studentId, password) {
       Auth.saveStudent(data.student);
       VocalID.set('student_info', { name: data.student.name, roll: data.student.studentId, email: data.student.email, dept: '' });
       showToast('Welcome back, ' + data.student.name + '!', 'success');
-      setTimeout(() => { window.location.href = 'voice.html'; }, 800);
+      const dest = data.student.isRegistrationLocked ? 'student-dashboard.html' : 'enroll.html';
+      setTimeout(() => { window.location.href = dest; }, 800);
       return true;
     }
     showToast(data.message || 'Invalid credentials.', 'error');
@@ -226,6 +227,131 @@ async function verifyFace(imageBlob) {
 }
 
 /**
+ * POST /api/check-liveness-sample
+ * Quality gate used during enrollment — checks a just-recorded clip for
+ * real lip movement synced to its own audio. Nothing is saved by this
+ * call; it just returns pass/fail so a bad take can be redone immediately.
+ * @param {Blob} clipBlob - the recorded video+audio clip for one phrase
+ * @returns {Promise<{passed:boolean, confidence?:number, reason?:string}|null>}
+ */
+async function checkLivenessSample(clipBlob) {
+  try {
+    const token = Auth.getToken();
+    if (!token) { showToast('You must be logged in to enroll.', 'error'); return null; }
+
+    const formData = new FormData();
+    formData.append('clip', clipBlob, 'sample_clip.webm');
+
+    const res = await fetch(API_URL + '/check-liveness-sample', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      return { passed: data.passed, confidence: data.confidence, reason: data.reason };
+    }
+    return { passed: false, reason: data.message || 'Liveness check request failed.' };
+  } catch (err) {
+    return { passed: false, reason: 'Cannot reach the server. Is the backend running?' };
+  }
+}
+
+/**
+ * POST /api/lock-registration
+ * Finalizes enrollment — requires 2+ voice samples and a registered face.
+ * Locks the profile so the student can't self-modify their biometrics
+ * afterward.
+ */
+async function lockRegistration() {
+  try {
+    const token = Auth.getToken();
+    if (!token) { showToast('You must be logged in to complete enrollment.', 'error'); return null; }
+
+    const res = await fetch(API_URL + '/lock-registration', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      const student = Auth.getStudent();
+      if (student) { student.isRegistrationLocked = true; Auth.saveStudent(student); }
+      showToast(data.message || 'Enrollment complete!', 'success');
+      return data;
+    }
+    showToast(data.message || 'Could not complete enrollment yet.', 'error');
+    return data;
+  } catch (err) {
+    showToast('Cannot reach the server. Is the backend running?', 'error');
+    return null;
+  }
+}
+
+/**
+ * GET /api/me — fresh profile (includes lock status + request status)
+ */
+async function fetchMyProfile() {
+  try {
+    const { ok, data } = await apiFetch('/me', { method: 'GET' });
+    if (ok && data.success) return data.student;
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * GET /api/attendance-report?studentId=...
+ */
+async function fetchMyAttendance(studentId) {
+  try {
+    const { ok, data } = await apiFetch(`/attendance-report?studentId=${encodeURIComponent(studentId)}`, { method: 'GET' });
+    if (ok && data.success) return data;
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * GET /api/student/activity-summary
+ */
+async function fetchMyActivitySummary() {
+  try {
+    const { ok, data } = await apiFetch('/student/activity-summary', { method: 'GET' });
+    if (ok && data.success) return data;
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * POST /api/request-biometric-update
+ * Students can't unlock their own profile — this sends a request to
+ * faculty instead.
+ */
+async function requestBiometricUpdate(reason) {
+  try {
+    const { ok, data } = await apiFetch('/request-biometric-update', {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+    if (ok && data.success) {
+      showToast(data.message || 'Your request has reached your faculty.', 'success');
+      return data;
+    }
+    showToast(data.message || 'Could not send your request.', 'error');
+    return data;
+  } catch (err) {
+    showToast('Cannot reach the server. Is the backend running?', 'error');
+    return null;
+  }
+}
+
+/**
  * POST /api/process-classroom-multimodal
  * Faculty live 3-factor multimodal (Voice + Face + LipSync) verification
  * @param {Blob} audioBlob - Audio recording blob
@@ -266,42 +392,14 @@ async function processClassroomMultimodal(audioBlob, faceImageBlob, videoClipBlo
  *   audioBlob     – Blob/File of the live recording (enables full ML verification)
  *   subject       – subject name (default 'General')
  */
-async function markAttendance(opts = {}) {
-  try {
-    const token = Auth.getToken();
-    if (!token) {
-      showToast('Please log in before marking attendance.', 'error');
-      window.location.href = 'student-login.html';
-      return null;
-    }
-
-    const formData = new FormData();
-    if (opts.audioBlob) formData.append('voiceSample', opts.audioBlob, 'attendance_voice.webm');
-    if (opts.faceBlob) formData.append('faceFrame', opts.faceBlob, 'attendance_face.jpg');
-    if (opts.videoBlob) formData.append('videoClip', opts.videoBlob, 'attendance_video.webm');
-    if (opts.subject) formData.append('subject', opts.subject || 'General');
-
-    const res = await fetch(API_URL + '/mark-attendance', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-
-    const data = await res.json();
-    if (res.ok && data.success) {
-      showToast(data.message || '✅ Attendance verified & recorded.', 'success');
-      return data;
-    }
-    if (res.status === 409) {
-      showToast('ℹ️ Attendance already marked for today.', 'info');
-      return data;
-    }
-    showToast(data.message || 'Multimodal verification failed.', 'error');
-    return data;
-  } catch (err) {
-    showToast('Cannot reach the server. Is backend running?', 'error');
-    return null;
-  }
+/**
+ * Self-service attendance marking has been removed. Students can no
+ * longer mark their own attendance — it is recorded automatically by
+ * the faculty-run roll-call session or live class session.
+ */
+async function markAttendance() {
+  showToast('Attendance is marked automatically by your instructor during class — you can\'t mark it yourself.', 'info');
+  return null;
 }
 
 /**
@@ -310,6 +408,34 @@ async function markAttendance(opts = {}) {
  * @param {string} subject
  * @returns {Promise<object|null>}
  */
+/**
+ * POST /api/class-session/activity
+ * Live Session continuous monitoring — voice-only speaker detection for
+ * classroom participation tracking. Deliberately does NOT verify face or
+ * lip-sync, and NEVER marks attendance — that's the roll-call engine's
+ * job. This only logs an ActivityEvent when a registered voice is heard.
+ * @param {Blob} audioBlob - short audio/video clip (audio track is what matters)
+ * @param {string} classId
+ * @param {string} sessionId
+ */
+async function logVoiceActivity(audioBlob, classId, sessionId) {
+  try {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'activity_chunk.webm');
+    if (classId) formData.append('classId', classId);
+    if (sessionId) formData.append('sessionId', sessionId);
+
+    const res = await fetch(API_URL + '/class-session/activity', {
+      method: 'POST',
+      body: formData
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn('Voice activity logging failed:', err.message);
+    return null;
+  }
+}
+
 async function processClassroomAudio(audioBlob, subject = 'General') {
   try {
     const formData = new FormData();
@@ -365,6 +491,7 @@ async function fetchAttendanceReport(filters = {}) {
 async function fetchStudents(filters = {}) {
   try {
     const params = new URLSearchParams();
+    if (filters.classId !== undefined) params.set('classId', filters.classId);
     if (filters.search !== undefined) params.set('search', filters.search);
     if (filters.isVoiceRegistered !== undefined) params.set('isVoiceRegistered', filters.isVoiceRegistered);
     const query = params.toString() ? '?' + params.toString() : '';

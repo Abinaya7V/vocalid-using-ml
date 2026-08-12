@@ -90,7 +90,7 @@
             <path
               d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
           </svg>
-          Begin Voice Enrollment
+          Begin Biometric Enrollment
         </button>
       </form>
 
@@ -139,10 +139,10 @@
       const ok = await registerStudent(name, roll, email, password, classId);
 
       if (ok) {
-        setTimeout(() => { window.location.href = 'voice.html'; }, 900);
+        setTimeout(() => { window.location.href = 'enroll.html'; }, 900);
       } else {
         btn.disabled = false;
-        btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg> Begin Voice Enrollment';
+        btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" viewBox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg> Begin Biometric Enrollment';
       }
     }
 

@@ -123,6 +123,15 @@
             </a>
           </div>
         </div>
+        <!-- Biometric Update Requests -->
+        <div class="glass-card p-4 mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="label-accent">Biometric Update Requests</div>
+            <span id="req-count-badge" class="nav-badge">0</span>
+          </div>
+          <div id="biometric-requests-list" style="font-size:.82rem;color:var(--text-muted);">Loading…</div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -138,6 +147,58 @@
   const greet = hr < 12 ? 'Good morning' : hr < 17 ? 'Good afternoon' : 'Good evening';
   document.getElementById('greeting-msg').textContent = `${greet}, ${id}.`;
   document.getElementById('time-label').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}).toUpperCase();
+
+  async function loadBiometricRequests() {
+    const listEl = document.getElementById('biometric-requests-list');
+    try {
+      const res = await fetch(API_URL + '/faculty/biometric-requests');
+      const data = await res.json();
+      const requests = (data && data.requests) || [];
+
+      document.getElementById('req-count-badge').textContent = requests.length;
+
+      if (requests.length === 0) {
+        listEl.innerHTML = 'No pending requests.';
+        return;
+      }
+
+      listEl.innerHTML = requests.map(r => `
+        <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom:1px solid var(--border-subtle);">
+          <div>
+            <div style="color:var(--text-primary);font-weight:600;">${r.name} <span style="color:var(--text-muted);font-weight:400;">(${r.studentId})</span></div>
+            <div style="font-size:.72rem;color:var(--text-muted);">${r.biometricUpdateRequest.reason || 'No reason given'}</div>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-success" style="font-size:.72rem;" onclick="respondToRequest('${r.studentId}', true)">Approve</button>
+            <button class="btn btn-sm btn-outline-danger" style="font-size:.72rem;" onclick="respondToRequest('${r.studentId}', false)">Deny</button>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      listEl.innerHTML = 'Could not load requests. Is the backend running?';
+    }
+  }
+
+  async function respondToRequest(studentId, approve) {
+    const note = window.prompt(approve ? 'Optional note for the student:' : 'Reason for denial (optional):', '') || undefined;
+    try {
+      const res = await fetch(`${API_URL}/faculty/biometric-requests/${studentId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approve, note })
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadBiometricRequests();
+      } else {
+        alert(data.message || 'Could not respond to request.');
+      }
+    } catch (err) {
+      alert('Cannot reach the server.');
+    }
+  }
+
+  loadBiometricRequests();
 </script>
 </body>
 </html>

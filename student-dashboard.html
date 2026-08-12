@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocalID — My Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    #app { padding: 32px 24px; max-width: 900px; margin: 0 auto; }
+    .bar-track { height: 8px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; background: var(--accent-cyan); border-radius: 4px; }
+    .req-box { border-radius: 10px; padding: 16px; border: 1px solid var(--border-subtle); background: rgba(255,255,255,.02); }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3" style="border-bottom:1px solid var(--border-subtle);">
+      <div class="d-flex align-items-center gap-2">
+        <svg width="24" height="24" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24">
+          <path d="M12 2a3 3 0 00-3 3v7a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+          <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
+        </svg>
+        <span style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;">VocalID</span>
+      </div>
+      <a href="index.html" onclick="Auth.clearToken(); Auth.clearStudent();" class="btn btn-sm btn-outline-danger" style="font-size:0.75rem;">Sign Out</a>
+    </div>
+
+    <p class="label-accent mb-1">Student Dashboard</p>
+    <h2 style="font-size:1.9rem;margin-bottom:4px;" id="greeting">—</h2>
+    <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:24px;">
+      Attendance and activity are recorded automatically by your instructor. This page is read-only.
+    </p>
+
+    <!-- Summary stat cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-value" style="color:var(--accent-emerald);" id="stat-present">—</div>
+          <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Days Present</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-value" style="color:var(--accent-cyan);" id="stat-activity">—</div>
+          <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Overall Activity</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-value" style="color:var(--accent-gold);" id="stat-responses">—</div>
+          <div style="font-size:.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">Verified Responses</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity by class -->
+    <div class="glass-card p-4 mb-4">
+      <div class="label-accent mb-3">My Activity By Class</div>
+      <div id="activity-list" style="font-size:.85rem;color:var(--text-muted);">Loading…</div>
+    </div>
+
+    <!-- Attendance history -->
+    <div class="glass-card p-4 mb-4">
+      <div class="label-accent mb-3">Attendance History</div>
+      <div style="max-height:280px;overflow-y:auto;">
+        <table class="table table-sm table-borderless mb-0" style="font-size:.8rem;">
+          <thead>
+            <tr style="color:var(--text-muted);">
+              <th>Date</th><th>Time</th><th>Subject</th><th>Method</th><th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody id="attendance-rows">
+            <tr><td colspan="5" style="color:var(--text-muted);">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Biometric profile status -->
+    <div class="glass-card p-4">
+      <div class="label-accent mb-3">Biometric Profile</div>
+      <div id="biometric-panel"><span style="color:var(--text-muted);font-size:.85rem;">Loading…</span></div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/vocalid.js"></script>
+  <script>
+    VocalID.requireStudentAuth();
+
+    let myProfile = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      myProfile = await fetchMyProfile();
+      if (!myProfile) {
+        showToast('Could not load your profile. Please log in again.', 'error');
+        return;
+      }
+
+      document.getElementById('greeting').textContent = `Welcome, ${myProfile.name}`;
+
+      renderBiometricPanel(myProfile);
+      loadAttendance(myProfile.studentId);
+      loadActivity();
+    });
+
+    async function loadAttendance(studentId) {
+      const result = await fetchMyAttendance(studentId);
+      const tbody = document.getElementById('attendance-rows');
+
+      if (!result || !result.records || result.records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color:var(--text-muted);">No attendance recorded yet.</td></tr>`;
+        document.getElementById('stat-present').textContent = '0';
+        return;
+      }
+
+      document.getElementById('stat-present').textContent = result.records.length;
+
+      tbody.innerHTML = result.records.map(r => `
+        <tr>
+          <td>${r.date}</td>
+          <td>${r.time}</td>
+          <td>${r.subject || 'General'}</td>
+          <td style="text-transform:capitalize;">${(r.method || '').replace(/_/g, ' ')}</td>
+          <td>${r.confidence != null ? r.confidence + '%' : '—'}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadActivity() {
+      const result = await fetchMyActivitySummary();
+      const list = document.getElementById('activity-list');
+
+      if (!result) {
+        list.innerHTML = 'Could not load activity data.';
+        return;
+      }
+
+      document.getElementById('stat-activity').textContent = result.overallScore + '%';
+      document.getElementById('stat-responses').textContent = result.totalVerifiedResponses;
+
+      if (!result.classes || result.classes.length === 0) {
+        list.innerHTML = 'No classroom activity recorded yet.';
+        return;
+      }
+
+      list.innerHTML = result.classes.map(c => `
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span style="color:var(--text-primary);font-weight:600;">${c.classId}</span>
+            <span style="color:var(--accent-cyan);">${c.activityScore}%</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:${c.activityScore}%;"></div></div>
+          <div style="font-size:.7rem;color:var(--text-muted);margin-top:4px;">
+            ${c.verifiedResponses} verified response(s) · last active ${c.lastActive ? new Date(c.lastActive).toLocaleString() : '—'}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderBiometricPanel(student) {
+      const panel = document.getElementById('biometric-panel');
+      const req = student.biometricUpdateRequest || { status: 'none' };
+
+      if (!student.isRegistrationLocked) {
+        panel.innerHTML = `
+          <div class="req-box">
+            <div style="font-size:.85rem;color:var(--accent-emerald);font-weight:600;margin-bottom:6px;">Enrollment not yet locked</div>
+            <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px;">Finish enrolling your voice, face and lip-sync samples.</div>
+            <a href="enroll.html" class="btn-vocalid" style="padding:8px 16px;font-size:.8rem;">Continue Enrollment</a>
+          </div>`;
+        return;
+      }
+
+      if (req.status === 'pending') {
+        panel.innerHTML = `
+          <div class="req-box">
+            <div style="font-size:.85rem;color:var(--accent-gold);font-weight:600;margin-bottom:6px;">Request pending</div>
+            <div style="font-size:.78rem;color:var(--text-muted);">
+              Your request has reached your faculty and is awaiting review. Requested on
+              ${req.requestedAt ? new Date(req.requestedAt).toLocaleString() : ''}.
+            </div>
+          </div>`;
+        return;
+      }
+
+      if (req.status === 'approved') {
+        panel.innerHTML = `
+          <div class="req-box">
+            <div style="font-size:.85rem;color:var(--accent-emerald);font-weight:600;margin-bottom:6px;">Request approved</div>
+            <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:12px;">
+              Your faculty approved your update request${req.responseNote ? ': "' + req.responseNote + '"' : '.'} You can re-enroll now.
+            </div>
+            <a href="enroll.html" class="btn-vocalid" style="padding:8px 16px;font-size:.8rem;">Re-Enroll Now</a>
+          </div>`;
+        return;
+      }
+
+      // status: 'none' or 'denied' → locked, can request (again)
+      const deniedNote = req.status === 'denied'
+        ? `<div style="font-size:.78rem;color:var(--accent-rose);margin-bottom:10px;">Your last request was denied${req.responseNote ? ': "' + req.responseNote + '"' : '.'}</div>`
+        : '';
+
+      panel.innerHTML = `
+        <div class="req-box">
+          <div style="font-size:.85rem;color:var(--text-primary);font-weight:600;margin-bottom:6px;">🔒 Profile locked</div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:10px;">
+            Your voice, face and lip-sync samples are locked. Only your faculty can authorize changes.
+          </div>
+          ${deniedNote}
+          <button id="btn-request-update" class="btn-outline-vocalid" style="padding:8px 16px;font-size:.8rem;" onclick="handleRequestUpdate()">
+            Request Biometric Update
+          </button>
+        </div>`;
+    }
+
+    async function handleRequestUpdate() {
+      const btn = document.getElementById('btn-request-update');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+
+      const reason = window.prompt('Briefly tell your faculty why you need to update your biometric profile (optional):', '') || undefined;
+      const result = await requestBiometricUpdate(reason);
+
+      if (result && result.success) {
+        myProfile.biometricUpdateRequest = result.request;
+        renderBiometricPanel(myProfile);
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Request Biometric Update';
+      }
+    }
+  </script>
+</body>
+</html>
