@@ -15,6 +15,15 @@ const studentSchema = new mongoose.Schema({
   faceRegisteredAt: { type: Date },
   faceEmbeddings: { type: [[Number]], default: [] },
   faceSamplePaths: [{ type: String }],
+  isRegistrationLocked: { type: Boolean, default: false },
+  registrationLockedAt: { type: Date, default: null },
+  biometricUpdateRequest: {
+    status: { type: String, enum: ['none', 'pending', 'approved', 'denied'], default: 'none' },
+    reason: { type: String, default: null },
+    requestedAt: { type: Date, default: null },
+    respondedAt: { type: Date, default: null },
+    responseNote: { type: String, default: null }
+  },
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

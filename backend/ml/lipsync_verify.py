@@ -1,9 +1,28 @@
 import sys
 import os
 import json
-from lipsync_utils import verify_lipsync_and_liveness
+
+try:
+    from lipsync_utils import verify_lipsync_and_liveness
+    IMPORT_ERROR = None
+except Exception as _e:
+    verify_lipsync_and_liveness = None
+    IMPORT_ERROR = str(_e)
 
 def main():
+    if IMPORT_ERROR is not None:
+        result = {
+            "success": False,
+            "liveness_passed": False,
+            "lipsync_score": 0.0,
+            "liveness_confidence": 0.0,
+            "audio_sync_matched": False,
+            "error": f"ML_DEPENDENCY_ERROR: Could not load face/lip-sync libraries ({IMPORT_ERROR}). "
+                     f"Check that opencv-contrib-python and librosa are installed (pip install -r requirements.txt)."
+        }
+        print(json.dumps(result))
+        sys.exit(0)
+
     if len(sys.argv) < 3:
         result = {
             "success": False,
@@ -31,7 +50,19 @@ def main():
         print(json.dumps(result))
         sys.exit(1)
 
-    liveness_ok, score, confidence, msg = verify_lipsync_and_liveness(video_path, audio_path)
+    try:
+        liveness_ok, score, confidence, msg = verify_lipsync_and_liveness(video_path, audio_path)
+    except Exception as e:
+        result = {
+            "success": False,
+            "liveness_passed": False,
+            "lipsync_score": 0.0,
+            "liveness_confidence": 0.0,
+            "audio_sync_matched": False,
+            "error": f"UNEXPECTED_ERROR: {e}"
+        }
+        print(json.dumps(result))
+        sys.exit(0)
 
     if liveness_ok:
         result = {

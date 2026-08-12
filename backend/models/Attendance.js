@@ -12,6 +12,9 @@ const attendanceSchema = new mongoose.Schema({
   faceScore: { type: Number, default: 0 },
   livenessScore: { type: Number, default: 0 },
   subject: { type: String, default: 'General' },
+  sessionId: { type: mongoose.Schema.Types.ObjectId, ref: 'AttendanceSession', default: null },
+  facultyOverride: { type: Boolean, default: false },
+  overrideReason: { type: String, default: null },
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -2,7 +2,6 @@ import os
 import sys
 import cv2
 import numpy as np
-from scipy.io import wavfile
 from face_utils import ensure_models_exist, create_detector
 
 def extract_facial_and_mouth_data(video_path):
@@ -13,7 +12,10 @@ def extract_facial_and_mouth_data(video_path):
     - Mouth Aspect Ratio (MAR) time series
     Returns: dict with frame_count, face_detected_count, multiple_faces_count, mars, error
     """
-    ensure_models_exist()
+    try:
+        ensure_models_exist()
+    except Exception as e:
+        return {"error": "MODEL_LOAD_FAILED", "message": f"Face model files could not be loaded/downloaded: {e}"}
 
     if not os.path.exists(video_path):
         return {"error": "VIDEO_NOT_FOUND", "message": f"Video file not found at path: {video_path}"}
@@ -28,42 +30,47 @@ def extract_facial_and_mouth_data(video_path):
     multiple_faces_count = 0
     detector = None
 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret or frame is None:
-            break
+    try:
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                break
 
-        frame_count += 1
-        h, w, _ = frame.shape
-        if h == 0 or w == 0:
-            continue
+            frame_count += 1
+            h, w, _ = frame.shape
+            if h == 0 or w == 0:
+                continue
 
-        if detector is None:
-            detector = create_detector(w, h, score_threshold=0.5)
+            if detector is None:
+                detector = create_detector(w, h, score_threshold=0.5)
 
-        _, faces = detector.detect(frame)
+            _, faces = detector.detect(frame)
 
-        if faces is None or len(faces) == 0:
-            continue
-        elif len(faces) > 1:
-            multiple_faces_count += 1
+            if faces is None or len(faces) == 0:
+                continue
+            elif len(faces) > 1:
+                multiple_faces_count += 1
 
-        face_count += 1
-        face = faces[0]
-        
-        # Bounding box & keypoint landmarks:
-        # face[0:4] = [x, y, w, h]
-        # landmarks: right_eye(0,1), left_eye(2,3), nose(4,5), right_mouth(6,7), left_mouth(8,9)
-        fx, fy, fw, fh = face[0:4]
-        rx, ry = face[6], face[7]
-        lx, ly = face[8], face[9]
+            face_count += 1
+            face = faces[0]
 
-        mouth_width = np.sqrt((rx - lx)**2 + (ry - ly)**2)
-        mouth_height = max(1.0, fh * 0.22)
+            # Bounding box & keypoint landmarks:
+            # face[0:4] = [x, y, w, h]
+            # landmarks: right_eye(0,1), left_eye(2,3), nose(4,5), right_mouth(6,7), left_mouth(8,9)
+            fx, fy, fw, fh = face[0:4]
+            rx, ry = face[6], face[7]
+            lx, ly = face[8], face[9]
 
-        if mouth_width > 0:
-            mar = mouth_height / mouth_width
-            mars.append(float(mar))
+            mouth_width = np.sqrt((rx - lx)**2 + (ry - ly)**2)
+            mouth_height = max(1.0, fh * 0.22)
+
+            if mouth_width > 0:
+                mar = mouth_height / mouth_width
+                mars.append(float(mar))
+    except Exception as e:
+        cap.release()
+        sys.stderr.write(f"[Video Analysis Error] {e}\n")
+        return {"error": "VIDEO_ANALYSIS_FAILED", "message": f"Could not analyze video frames: {e}"}
 
     cap.release()
 
@@ -77,21 +84,21 @@ def extract_facial_and_mouth_data(video_path):
 
 def analyze_audio_signal(audio_path):
     """
-    Extracts normalized RMS energy envelope from audio file.
+    Extracts normalized RMS energy envelope from an audio/video file.
+    Uses librosa (ffmpeg-backed) instead of scipy.io.wavfile so this works
+    on real browser recordings (webm/mp4), not just raw WAV.
     Returns: (envelope_array, max_rms, error_message)
     """
     if not os.path.exists(audio_path):
         return np.array([]), 0.0, "AUDIO_FILE_NOT_FOUND"
 
     try:
-        sample_rate, data = wavfile.read(audio_path)
+        import librosa
+        data, sample_rate = librosa.load(audio_path, sr=None, mono=True)
         if data.size == 0:
             return np.array([]), 0.0, "EMPTY_AUDIO_FILE"
 
-        if data.ndim > 1:
-            data = data.mean(axis=1)
-
-        frame_size = int(sample_rate * 0.05) # 50ms chunks
+        frame_size = int(sample_rate * 0.05)  # 50ms chunks
         if frame_size == 0 or len(data) < frame_size:
             return np.array([]), 0.0, "AUDIO_TOO_SHORT"
 
@@ -142,9 +149,19 @@ def verify_lipsync_and_liveness(video_path, audio_path):
         return False, 0.0, 0.0, "MULTIPLE_FACES_DETECTED: Multiple faces detected in video. Exactly one student face is required."
 
     # 2. Check Audio Presence
+    # NOTE: librosa.load returns samples normalized to [-1.0, 1.0], not the
+    # int16 [-32768, 32767] range the old scipy.io.wavfile reader used —
+    # so this threshold is on the 0-1 scale, not the old 0-32768 scale.
     audio_env, max_rms, audio_err = analyze_audio_signal(audio_path)
-    if audio_err or len(audio_env) == 0 or max_rms < 10.0:
-        return False, 0.0, 0.0, "NO_AUDIO_DETECTED: Silent or missing voice audio. Spoken audio is required."
+
+    if audio_err:
+        # A decode failure (e.g. no ffmpeg on PATH, corrupt clip) is a
+        # DIFFERENT problem than genuine silence — report it distinctly
+        # so it isn't mistaken for "please speak up."
+        return False, 0.0, 0.0, f"AUDIO_DECODE_FAILED: Could not read the audio track ({audio_err}). If this keeps happening, check that ffmpeg is installed and on your system PATH."
+
+    if len(audio_env) == 0 or max_rms < 0.004:
+        return False, 0.0, 0.0, f"NO_AUDIO_DETECTED: Silent or missing voice audio (peak level {max_rms:.4f}). Spoken audio is required."
 
     # 3. Liveness Motion Variance Analysis (Detect Static Photo Spoofs)
     mar_std = float(np.std(mars)) if len(mars) > 0 else 0.0
